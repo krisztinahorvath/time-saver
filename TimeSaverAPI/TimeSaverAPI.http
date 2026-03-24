@@ -1,0 +1,6 @@
+@TimeSaverAPI_HostAddress = http://localhost:5288
+
+GET {{TimeSaverAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

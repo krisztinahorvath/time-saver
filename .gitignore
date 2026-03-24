@@ -417,3 +417,4 @@ FodyWeavers.xsd
 *.msm
 *.msp
 /backend/appsettings.json
+/TimeSaverAPI/appsettings.json
