@@ -3,7 +3,8 @@
     public enum UserType
     {
         Admin, 
-        User
+        Employer, 
+        Worker
     }
 
     public class User
@@ -13,7 +14,6 @@
         public string Email { get; set; } = null!;
         public string Password { get; set; } = null!;
         public string Bio { get; set; } = null!;
-        public bool IsWorker { get; set; }
         public UserType UserType { get; set; }
 
         public virtual ICollection<JobPost>? JobPosts { get; set; }
