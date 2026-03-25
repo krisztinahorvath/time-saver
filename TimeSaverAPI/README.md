@@ -29,6 +29,13 @@ To create a migration open the **Package Manager Console** and run this command 
 
 To remove the last migration use `Remove-Migration`.
 
+To apply existing migrations for inital setup or if the database schema changed use `Update-Database`. It will look at the migrations and create/update the tables.
+
+![Important](https://img.shields.io/badge/IMPORTANT-red)
+
+Migrations are state-based. If multiple people create migrations at the same time, there will be conflicts. Keep this in mind.
+
+
 ## DTOs
 They are data transfer objects. You'd probably want to use a DTO for most endpoints. Don't ask the client for information that is not need and don't return information not needed.
 
