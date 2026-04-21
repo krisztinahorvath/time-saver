@@ -1,0 +1,100 @@
+.register-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: 'Inter', sans-serif;
+}
+
+.register-card {
+    background: white;
+    padding: 2.5rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 450px;
+}
+
+    .register-card h2 {
+        margin-bottom: 1.5rem;
+        color: #333;
+        text-align: center;
+        font-weight: 700;
+    }
+
+.form-group {
+    margin-bottom: 1.2rem;
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        color: #666;
+    }
+
+.register-card input,
+.register-card textarea,
+.register-card select {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box; 
+}
+
+    .register-card input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+
+.register-button {
+    width: 100%;
+    padding: 1rem;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s ease;
+    margin-top: 1rem;
+}
+
+    .register-button:hover {
+        background: #5a67d8;
+    }
+
+.message {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    padding: 0.8rem;
+    border-radius: 4px;
+}
+
+    .message.success {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+
+    .message.error {
+        background: #fed7d7;
+        color: #822727;
+    }
+
+.input-error {
+    border-color: #e53e3e !important;
+    background-color: #fff5f5;
+}
+
+.error-text {
+    color: #e53e3e;
+    font-size: 0.75rem;
+    margin-top: 0.25rem;
+    display: block;
+}

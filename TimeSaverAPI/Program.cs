@@ -80,7 +80,7 @@ namespace TimeSaverAPI
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
-                app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader());
+                app.UseCors(options => options.WithOrigins("http://localhost:5173").AllowAnyHeader().AllowAnyMethod());
             }
 
             app.UseHttpsRedirection();
