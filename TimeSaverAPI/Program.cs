@@ -59,7 +59,6 @@ namespace TimeSaverAPI
 
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
-
             builder.Services.ConfigureSwaggerGen(setup =>
             {
                 setup.SwaggerDoc("v1", new Microsoft.OpenApi.OpenApiInfo
@@ -84,6 +83,8 @@ namespace TimeSaverAPI
             }
 
             app.UseHttpsRedirection();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 

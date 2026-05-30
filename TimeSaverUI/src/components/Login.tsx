@@ -17,13 +17,13 @@ const Login = () => {
         setError('');
 
         try {
-            const response = await api.post('/auth/login', credentials);
+            const response = await api.post('/Users/Login', credentials);
 
             const { token } = response.data;
 
             localStorage.setItem('token', token);
 
-            navigate('/dashboard');
+            navigate('/home');
         } catch (err: any) {
             setError(err.response?.data?.message || 'Invalid email or password.');
         }

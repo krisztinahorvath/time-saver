@@ -30,7 +30,7 @@ const Register = () => {
         setStatus(null);
 
         try {
-            await api.post('/auth/register', formData);
+            await api.post('/Users/register', formData);
             setStatus({ type: 'success', msg: 'Account created successfully!' });
         } catch (error: any) {
             if (error.response?.status === 400 && error.response.data.errors) {
