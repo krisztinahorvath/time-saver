@@ -19,6 +19,8 @@
 
         public long UserId { get; set; }
         public virtual User User { get; set; } = null!;
+        public long? AcceptedByUserId { get; set; }
+        public virtual User? AcceptedByUser { get; set; }
 
         // 1:n with JobPostImage
         public virtual ICollection<JobPostImage> Images { get; set; } = [];
