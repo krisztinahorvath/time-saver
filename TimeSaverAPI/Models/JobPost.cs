@@ -8,6 +8,18 @@
         Completed
     }
 
+    public enum JobCategory
+    {
+        Cleaning,
+        Delivery,
+        Tutoring,
+        Gardening,
+        Moving,
+        PetCare,
+        TechSupport,
+        Other
+    }
+
     public class JobPost
     {
         public long Id { get; set; }
@@ -15,6 +27,8 @@
         public required string Description { get; set; }
         public required double Budget { get; set; }
         public required JobStatus Status { get; set; }
+        public JobCategory Category { get; set; }
+        public required string Location { get; set; }
         public DateTime CreatedAt { get; set; }
 
         public long UserId { get; set; }

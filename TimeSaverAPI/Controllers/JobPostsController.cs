@@ -26,13 +26,30 @@ namespace TimeSaverAPI.Controllers
 
         // GET: api/JobPosts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<JobPost>>> GetJobPosts()
+        public async Task<ActionResult<IEnumerable<JobPost>>> GetJobPosts(
+            [FromQuery] JobCategory? category,
+            [FromQuery] string? location,
+            [FromQuery] double? minPrice,
+            [FromQuery] double? maxPrice)
         {
-            return await _context.JobPosts
+            var query = _context.JobPosts
                 .Include(j => j.User)
                 .Include(j => j.Images)
-                .Where(j => j.Status == JobStatus.Open)
-                .ToListAsync();
+                .Where(j => j.Status == JobStatus.Open);
+
+            if (category.HasValue)
+                query = query.Where(j => j.Category == category.Value);
+
+            if (!string.IsNullOrWhiteSpace(location))
+                query = query.Where(j => j.Location.Contains(location));
+
+            if (minPrice.HasValue)
+                query = query.Where(j => j.Budget >= minPrice.Value);
+
+            if (maxPrice.HasValue)
+                query = query.Where(j => j.Budget <= maxPrice.Value);
+
+            return await query.ToListAsync();
         }
 
         // GET: api/JobPosts/5
@@ -60,6 +77,8 @@ namespace TimeSaverAPI.Controllers
                 Title = dto.Title,
                 Description = dto.Description,
                 Budget = dto.Budget,
+                Category = dto.Category!.Value,
+                Location = dto.Location,
                 Status = JobStatus.Open,
                 CreatedAt = DateTime.UtcNow,
                 UserId = CurrentUserId          // taken from JWT, not from client

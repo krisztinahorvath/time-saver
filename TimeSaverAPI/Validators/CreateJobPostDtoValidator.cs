@@ -17,6 +17,17 @@ namespace TimeSaverAPI.Validators
 
             RuleFor(x => x.Budget)
                 .GreaterThan(0).WithMessage("Budget must be greater than 0.");
+
+            RuleFor(x => x.Category)
+                .IsInEnum().WithMessage("Invalid category.");
+
+            RuleFor(x => x.Location)
+                .NotEmpty().WithMessage("Location is required.")
+                .MaximumLength(100).WithMessage("Location cannot exceed 100 characters.");
+
+            RuleFor(x => x.Category)
+                .NotNull().WithMessage("Category is required.")
+                .IsInEnum().WithMessage("Invalid category.");
         }
     }
 }
