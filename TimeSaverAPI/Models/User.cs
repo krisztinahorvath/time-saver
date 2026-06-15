@@ -27,5 +27,7 @@
         public virtual ICollection<Review>? ReceivedReviews { get; set; }
 
         public virtual ICollection<Message>? SentMessages { get; set; }
+
+        public DateTime CreatedAt { get; set; }
     }
 }

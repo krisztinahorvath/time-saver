@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -20,22 +20,25 @@ namespace TimeSaverAPI.Controllers
             _context = context;
         }
 
-        // helper — reads the user ID baked into the JWT token
         private long CurrentUserId =>
             long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         // GET: api/JobPosts
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<JobPost>>> GetJobPosts(
+        public async Task<IActionResult> GetJobPosts(
+            [FromQuery] string? keyword,
             [FromQuery] JobCategory? category,
             [FromQuery] string? location,
             [FromQuery] double? minPrice,
-            [FromQuery] double? maxPrice)
+            [FromQuery] double? maxPrice,
+            [FromQuery] string? sortBy,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 12)
         {
-            var query = _context.JobPosts
-                .Include(j => j.User)
-                .Include(j => j.Images)
-                .Where(j => j.Status == JobStatus.Open);
+            var query = _context.JobPosts.Where(j => j.Status == JobStatus.Open);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+                query = query.Where(j => j.Title.Contains(keyword) || j.Description.Contains(keyword));
 
             if (category.HasValue)
                 query = query.Where(j => j.Category == category.Value);
@@ -49,7 +52,52 @@ namespace TimeSaverAPI.Controllers
             if (maxPrice.HasValue)
                 query = query.Where(j => j.Budget <= maxPrice.Value);
 
-            return await query.ToListAsync();
+            query = sortBy switch
+            {
+                "budgetAsc"  => query.OrderBy(j => j.Budget),
+                "budgetDesc" => query.OrderByDescending(j => j.Budget),
+                _            => query.OrderByDescending(j => j.CreatedAt),
+            };
+
+            var totalCount = await query.CountAsync();
+
+            pageSize = Math.Clamp(pageSize, 1, 50);
+            page     = Math.Max(1, page);
+
+            var jobs = await query
+                .Include(j => j.User).ThenInclude(u => u!.ReceivedReviews)
+                .Include(j => j.JobApplications)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var items = jobs.Select(j => new JobPostListItemDto
+            {
+                Id          = j.Id,
+                Title       = j.Title,
+                Description = j.Description,
+                Budget      = j.Budget,
+                Status      = j.Status.ToString(),
+                Category    = j.Category.ToString(),
+                Location    = j.Location,
+                CreatedAt   = j.CreatedAt,
+                Deadline    = j.Deadline,
+                UserId      = j.UserId,
+                UserName    = j.User?.Name,
+                EmployerAverageRating = j.User?.ReceivedReviews != null && j.User.ReceivedReviews.Any()
+                    ? Math.Round(j.User.ReceivedReviews.Average(r => r.Rating), 1)
+                    : 0,
+                EmployerReviewCount = j.User?.ReceivedReviews?.Count ?? 0,
+                ApplicationCount    = j.JobApplications?.Count ?? 0,
+            }).ToList();
+
+            return Ok(new PagedResult<JobPostListItemDto>
+            {
+                Items      = items,
+                TotalCount = totalCount,
+                Page       = page,
+                PageSize   = pageSize,
+            });
         }
 
         // GET: api/JobPosts/mine
@@ -60,10 +108,11 @@ namespace TimeSaverAPI.Controllers
                 .Include(j => j.Images)
                 .Include(j => j.JobApplications)
                     .ThenInclude(a => a.User)
+                .Include(j => j.AcceptedByUser)
                 .Where(j => j.UserId == CurrentUserId)
+                .OrderByDescending(j => j.CreatedAt)
                 .ToListAsync();
         }
-
 
         // GET: api/JobPosts/5
         [HttpGet("{id}")]
@@ -73,7 +122,8 @@ namespace TimeSaverAPI.Controllers
                 .Include(j => j.User)
                 .Include(j => j.Images)
                 .Include(j => j.JobApplications)
-                    .ThenInclude(a => a.User)   // who applied
+                    .ThenInclude(a => a.User)
+                .Include(j => j.AcceptedByUser)
                 .FirstOrDefaultAsync(j => j.Id == id);
 
             if (jobPost == null) return NotFound();
@@ -87,16 +137,16 @@ namespace TimeSaverAPI.Controllers
         {
             var jobPost = new JobPost
             {
-                Title = dto.Title,
-                Description = dto.Description,
-                Budget = dto.Budget,
-                Category = dto.Category!.Value,
-                Location = dto.Location,
-                Deadline = dto.Deadline,
-                SpecialRequirements = dto.SpecialRequirements,
-                Status = JobStatus.Open,
-                CreatedAt = DateTime.UtcNow,
-                UserId = CurrentUserId
+                Title                = dto.Title,
+                Description          = dto.Description,
+                Budget               = dto.Budget,
+                Category             = dto.Category!.Value,
+                Location             = dto.Location,
+                Deadline             = dto.Deadline,
+                SpecialRequirements  = dto.SpecialRequirements,
+                Status               = JobStatus.Open,
+                CreatedAt            = DateTime.UtcNow,
+                UserId               = CurrentUserId
             };
 
             _context.JobPosts.Add(jobPost);
@@ -124,7 +174,6 @@ namespace TimeSaverAPI.Controllers
 
             if (application == null) return NotFound(new { message = "Aplicația nu a fost găsită." });
 
-            // accept the chosen one, reject the rest
             foreach (var app in jobPost.JobApplications)
             {
                 app.JobApplicationStatus = app.Id == dto.ApplicationId
@@ -132,7 +181,7 @@ namespace TimeSaverAPI.Controllers
                     : JobApplicationStatus.Rejected;
             }
 
-            jobPost.Status = JobStatus.InProgress;
+            jobPost.Status           = JobStatus.InProgress;
             jobPost.AcceptedByUserId = application.UserId;
 
             await _context.SaveChangesAsync();
@@ -156,7 +205,6 @@ namespace TimeSaverAPI.Controllers
             if (jobPost.Status == JobStatus.Cancelled)
                 return BadRequest(new { message = "Jobul este deja anulat." });
 
-            // auto-reject all pending applications
             foreach (var app in jobPost.JobApplications)
             {
                 if (app.JobApplicationStatus == JobApplicationStatus.Pending)
@@ -182,7 +230,7 @@ namespace TimeSaverAPI.Controllers
                 return Forbid();
 
             if (jobPost.Status != JobStatus.InProgress)
-                return BadRequest("Job must be InProgress to be completed.");
+                return BadRequest(new { message = "Jobul trebuie să fie în desfășurare pentru a fi finalizat." });
 
             jobPost.Status = JobStatus.Completed;
             await _context.SaveChangesAsync();
@@ -191,7 +239,6 @@ namespace TimeSaverAPI.Controllers
         }
 
         // DELETE: api/JobPosts/5
-        // Only the original poster can delete, and only if it hasn't started
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJobPost(long id)
         {

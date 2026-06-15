@@ -45,10 +45,11 @@ namespace TimeSaverAPI.Controllers
 
             var user = new User
             {
-                Name = dto.Name,
-                Email = dto.Email,
-                Bio = dto.Bio ?? string.Empty,
-                UserType = dto.UserType
+                Name      = dto.Name,
+                Email     = dto.Email,
+                Bio       = dto.Bio ?? string.Empty,
+                UserType  = dto.UserType,
+                CreatedAt = DateTime.UtcNow,
             };
 
             user.Password = _passwordHasher.HashPassword(user, dto.Password);
@@ -160,27 +161,34 @@ namespace TimeSaverAPI.Controllers
                 ? Math.Round(user.ReceivedReviews.Average(r => r.Rating), 2)
                 : 0;
 
+            // Count completed jobs: for Workers count jobs where they were the worker; for Employers their posted completed jobs
+            int completedJobsCount = user.UserType == UserType.Worker
+                ? await _context.JobPosts.CountAsync(j => j.AcceptedByUserId == id && j.Status == JobStatus.Completed)
+                : await _context.JobPosts.CountAsync(j => j.UserId == id && j.Status == JobStatus.Completed);
+
             var reviews = user.ReceivedReviews?
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new
                 {
-                    id = r.Id,
-                    rating = r.Rating,
-                    comment = r.Comment,
-                    createdAt = r.CreatedAt,
+                    id             = r.Id,
+                    rating         = r.Rating,
+                    comment        = r.Comment,
+                    createdAt      = r.CreatedAt,
                     reviewerUserId = r.ReviewerUserId,
-                    reviewerName = r.ReviewerUser?.Name
+                    reviewerName   = r.ReviewerUser?.Name
                 })
                 .ToList();
 
             return Ok(new
             {
-                id = user.Id,
-                name = user.Name,
-                bio = user.Bio,
-                userType = user.UserType.ToString(),
-                averageRating = avgRating,
-                reviewCount = user.ReceivedReviews?.Count ?? 0,
+                id                 = user.Id,
+                name               = user.Name,
+                bio                = user.Bio,
+                userType           = user.UserType.ToString(),
+                averageRating      = avgRating,
+                reviewCount        = user.ReceivedReviews?.Count ?? 0,
+                completedJobsCount,
+                memberSince        = user.CreatedAt,
                 reviews
             });
         }

@@ -31,6 +31,8 @@ export interface PublicProfile {
   userType: UserType;
   averageRating: number;
   reviewCount: number;
+  completedJobsCount: number;
+  memberSince: string;
   reviews: ReviewItem[];
 }
 
@@ -74,6 +76,32 @@ export interface JobPost {
   acceptedByUser?: { id: number; name: string };
   images: JobPostImage[];
   jobApplications: JobApplication[];
+}
+
+// Lightweight item returned by GET /api/JobPosts (list endpoint)
+export interface JobPostListItem {
+  id: number;
+  title: string;
+  description: string;
+  budget: number;
+  status: JobStatus;
+  category: JobCategory;
+  location: string;
+  createdAt: string;
+  deadline?: string;
+  userId: number;
+  userName?: string;
+  employerAverageRating: number;
+  employerReviewCount: number;
+  applicationCount: number;
+}
+
+export interface PagedResult<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export interface ReviewItem {
@@ -120,28 +148,47 @@ export interface CreateJobPostPayload {
 }
 
 export const CATEGORY_LABELS: Record<JobCategory, string> = {
-  Cleaning: 'Curățenie',
-  Delivery: 'Livrare & Transport',
-  Tutoring: 'Meditații',
-  Gardening: 'Grădinărit',
-  Moving: 'Mutări',
-  PetCare: 'Îngrijire animale',
-  TechSupport: 'IT & Tech support',
-  Other: 'Altele',
-  Repairs: 'Reparații',
-  Plumbing: 'Instalații',
-  Electrical: 'Electricitate',
-  FurnitureAssembly: 'Montaj mobilier',
-  Design: 'Design',
-  Marketing: 'Marketing',
-  Babysitting: 'Babysitting',
-  Events: 'Evenimente',
+  Cleaning:         'Curățenie',
+  Delivery:         'Livrare & Transport',
+  Tutoring:         'Meditații',
+  Gardening:        'Grădinărit',
+  Moving:           'Mutări',
+  PetCare:          'Îngrijire animale',
+  TechSupport:      'IT & Tech support',
+  Other:            'Altele',
+  Repairs:          'Reparații',
+  Plumbing:         'Instalații',
+  Electrical:       'Electricitate',
+  FurnitureAssembly:'Montaj mobilier',
+  Design:           'Design',
+  Marketing:        'Marketing',
+  Babysitting:      'Babysitting',
+  Events:           'Evenimente',
+};
+
+export const CATEGORY_ICONS: Record<JobCategory, string> = {
+  Cleaning:          '🧹',
+  Delivery:          '🚚',
+  Tutoring:          '📚',
+  Gardening:         '🌿',
+  Moving:            '📦',
+  PetCare:           '🐾',
+  TechSupport:       '💻',
+  Other:             '🔖',
+  Repairs:           '🔧',
+  Plumbing:          '🚰',
+  Electrical:        '💡',
+  FurnitureAssembly: '🛋️',
+  Design:            '🎨',
+  Marketing:         '📣',
+  Babysitting:       '👶',
+  Events:            '🎉',
 };
 
 export const STATUS_LABELS: Record<JobStatus, string> = {
-  Pending: 'În așteptare',
-  Open: 'Disponibil',
+  Pending:    'În așteptare',
+  Open:       'Disponibil',
   InProgress: 'În desfășurare',
-  Completed: 'Finalizat',
-  Cancelled: 'Anulat',
+  Completed:  'Finalizat',
+  Cancelled:  'Anulat',
 };

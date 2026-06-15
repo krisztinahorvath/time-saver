@@ -2,38 +2,41 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import Navbar from './Navbar';
 import './LandingPage.css';
+import type { JobCategory } from '../types';
+import { CATEGORY_LABELS, CATEGORY_ICONS } from '../types';
 
-const CATEGORIES = [
-  { icon: '🧹', label: 'Curățenie' },
-  { icon: '🔧', label: 'Reparații' },
-  { icon: '💡', label: 'Electricitate' },
-  { icon: '🚰', label: 'Instalații' },
-  { icon: '🚚', label: 'Mutări' },
-  { icon: '📚', label: 'Meditații' },
-  { icon: '🌿', label: 'Grădinărit' },
-  { icon: '🐾', label: 'Pet Care' },
-  { icon: '💻', label: 'IT & Tech' },
-  { icon: '🎨', label: 'Design' },
-  { icon: '🛋️', label: 'Montaj mobilier' },
-  { icon: '🎉', label: 'Evenimente' },
+const POPULAR_CATEGORIES: JobCategory[] = [
+  'Cleaning', 'Repairs', 'Electrical', 'Plumbing', 'Moving',
+  'Delivery', 'Tutoring', 'Gardening', 'PetCare', 'TechSupport',
+  'Design', 'Events',
 ];
 
 const STEPS = [
   {
     number: '1',
+    icon: '📋',
     title: 'Postează un task',
     desc: 'Descrie ce ai nevoie, stabilește bugetul și locația.',
   },
   {
     number: '2',
+    icon: '📩',
     title: 'Primești aplicații',
     desc: 'Prestatorii locali aplică și îți trimit oferte personalizate.',
   },
   {
     number: '3',
+    icon: '✅',
     title: 'Alege și finalizează',
-    desc: 'Selectezi prestatorul potrivit, lucrezi și lași un review.',
+    desc: 'Selectezi prestatorul potrivit, colaborezi și lași un review.',
   },
+];
+
+const TRUST_STATS = [
+  { value: '500+', label: 'Joburi finalizate' },
+  { value: '200+', label: 'Prestatori activi' },
+  { value: '4.8★', label: 'Rating mediu' },
+  { value: '24h',  label: 'Timp mediu de răspuns' },
 ];
 
 const LandingPage: React.FC = () => {
@@ -41,28 +44,29 @@ const LandingPage: React.FC = () => {
     <div className="landing">
       <Navbar />
 
-      {/* Hero */}
+      {/* ── Hero ── */}
       <section className="hero">
         <div className="hero-content">
+          <div className="hero-badge">🚀 Cea mai rapidă piață de servicii locale</div>
           <h1 className="hero-title">
-            Găsește rapid <span className="highlight">servicii locale</span> sau<br />
-            postează un task și primești oferte
+            Găsește rapid <span className="highlight">servicii locale</span><br />
+            sau câștigă bani din talentele tale
           </h1>
           <p className="hero-subtitle">
             Conectăm angajatorii cu prestatori de servicii verificați din zona ta.
-            Rapid, simplu și sigur.
+            Rapid, simplu și sigur — fără intermediari.
           </p>
           <div className="hero-actions">
             <Link to="/register" className="btn btn-primary btn-hero">
-              Postează un task
+              Postează un task gratuit
             </Link>
             <Link to="/explore" className="btn btn-outline btn-hero">
-              Găsește joburi
+              Caută joburi
             </Link>
           </div>
           <p className="hero-note">
             Ești prestator?{' '}
-            <Link to="/register">Înregistrează-te gratuit</Link> și începe să câștigii
+            <Link to="/register">Înregistrează-te gratuit</Link> și găsești primii clienți în câteva ore.
           </p>
         </div>
 
@@ -71,80 +75,119 @@ const LandingPage: React.FC = () => {
             <div className="preview-card">
               <span className="badge badge-open">Disponibil</span>
               <h3>Reparație instalație sanitară</h3>
-              <p>Schimb robinet și garnituri baie</p>
+              <p>Schimb robinet și garnituri baie — urgent</p>
               <div className="preview-footer">
                 <strong>150 RON</strong>
-                <span>Cluj-Napoca</span>
+                <span>📍 Cluj-Napoca</span>
               </div>
             </div>
             <div className="preview-card">
               <span className="badge badge-open">Disponibil</span>
               <h3>Meditații matematică cls. 10</h3>
-              <p>Pregătire bacalaureat, 2 ore/săpt</p>
+              <p>Pregătire bacalaureat, 2h/săptămână</p>
               <div className="preview-footer">
                 <strong>80 RON/oră</strong>
-                <span>Online</span>
+                <span>📍 Online</span>
+              </div>
+            </div>
+            <div className="preview-card">
+              <span className="badge badge-open">Disponibil</span>
+              <h3>Curățenie apartament 3 camere</h3>
+              <p>Curățenie generală, produse asigurate</p>
+              <div className="preview-footer">
+                <strong>200 RON</strong>
+                <span>📍 București</span>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="how-it-works">
+      {/* ── Trust stats ── */}
+      <section className="trust-section">
         <div className="container">
-          <h2 className="section-heading">Cum funcționează?</h2>
-          <p className="section-subheading">Trei pași simpli pentru a rezolva orice task</p>
-          <div className="steps-grid">
-            {STEPS.map((s) => (
-              <div key={s.number} className="step-card">
-                <div className="step-number">{s.number}</div>
-                <h3>{s.title}</h3>
-                <p>{s.desc}</p>
+          <div className="trust-stats">
+            {TRUST_STATS.map(s => (
+              <div key={s.label} className="trust-stat">
+                <div className="trust-num">{s.value}</div>
+                <div className="trust-label">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Categories */}
-      <section className="categories-section">
+      {/* ── How it works ── */}
+      <section className="how-it-works">
         <div className="container">
-          <h2 className="section-heading">Categorii populare</h2>
-          <div className="categories-grid">
-            {CATEGORIES.map((c) => (
-              <Link to="/explore" key={c.label} className="category-chip">
-                <span className="category-icon">{c.icon}</span>
-                <span>{c.label}</span>
-              </Link>
+          <h2 className="section-heading">Cum funcționează?</h2>
+          <p className="section-subheading">Trei pași simpli pentru a rezolva orice task</p>
+          <div className="steps-grid">
+            {STEPS.map((s, i) => (
+              <div key={s.number} className="step-card">
+                <div className="step-number">{s.number}</div>
+                <div className="step-icon">{s.icon}</div>
+                <h3>{s.title}</h3>
+                <p>{s.desc}</p>
+                {i < STEPS.length - 1 && <div className="step-arrow">→</div>}
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Benefits */}
+      {/* ── Popular categories ── */}
+      <section className="categories-section">
+        <div className="container">
+          <h2 className="section-heading">Categorii populare</h2>
+          <p className="section-subheading">Navighează direct la joburile care te interesează</p>
+          <div className="categories-grid">
+            {POPULAR_CATEGORIES.map(cat => (
+              <Link
+                to={`/explore?category=${cat}`}
+                key={cat}
+                className="category-chip"
+              >
+                <span className="category-icon">{CATEGORY_ICONS[cat]}</span>
+                <span>{CATEGORY_LABELS[cat]}</span>
+              </Link>
+            ))}
+          </div>
+          <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
+            <Link to="/explore" className="btn btn-outline">
+              Vezi toate categoriile →
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* ── Benefits ── */}
       <section className="benefits">
         <div className="container">
           <div className="benefits-grid">
-            <div className="benefit-col">
+            <div className="benefit-col benefit-employer">
+              <div className="benefit-icon">📋</div>
               <h2>Pentru angajatori</h2>
               <ul>
-                <li>✅ Postezi gratuit orice task</li>
+                <li>✅ Postezi orice task <strong>gratuit</strong></li>
                 <li>✅ Primești oferte de la prestatori locali</li>
-                <li>✅ Tu alegi cine lucrează</li>
+                <li>✅ Tu alegi cine lucrează — nicio obligație</li>
+                <li>✅ Comunicare directă prin chat</li>
                 <li>✅ Review și rating după finalizare</li>
               </ul>
               <Link to="/register" className="btn btn-primary" style={{ marginTop: '1.5rem' }}>
                 Postează primul task
               </Link>
             </div>
-            <div className="benefit-col">
+            <div className="benefit-col benefit-worker">
+              <div className="benefit-icon">🔧</div>
               <h2>Pentru prestatori</h2>
               <ul>
-                <li>✅ Găsești clienți în zona ta</li>
+                <li>✅ Găsești clienți <strong>în zona ta</strong></li>
                 <li>✅ Aplici la taskuri care te interesează</li>
                 <li>✅ Îți construiești un profil cu recenzii</li>
-                <li>✅ Câștiguri directe, fără intermediari</li>
+                <li>✅ Câștiguri directe, fără comisioane ascunse</li>
+                <li>✅ Flex total — lucrezi când vrei</li>
               </ul>
               <Link to="/register" className="btn btn-outline" style={{ marginTop: '1.5rem' }}>
                 Devino prestator
@@ -154,14 +197,21 @@ const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* CTA */}
+      {/* ── CTA ── */}
       <section className="cta-section">
         <div className="container">
-          <h2>Gata să începi?</h2>
-          <p>Înregistrarea este gratuită și durează mai puțin de 2 minute.</p>
-          <Link to="/register" className="btn btn-primary btn-hero">
-            Creează cont gratuit
-          </Link>
+          <div className="cta-content">
+            <h2>Gata să începi?</h2>
+            <p>Înregistrarea este gratuită și durează mai puțin de 2 minute.</p>
+            <div className="cta-actions">
+              <Link to="/register" className="btn btn-cta-primary">
+                Creează cont gratuit
+              </Link>
+              <Link to="/explore" className="btn btn-cta-outline">
+                Explorează joburi
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 

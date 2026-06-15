@@ -75,6 +75,16 @@ namespace TimeSaverAPI.Data
                 .WithMany(u => u.SentMessages)
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.ClientCascade);
+
+            // Phase 3: discovery indexes for filtering/sorting
+            modelBuilder.Entity<JobPost>().HasIndex(j => j.Status);
+            modelBuilder.Entity<JobPost>().HasIndex(j => j.Category);
+            modelBuilder.Entity<JobPost>().HasIndex(j => j.CreatedAt);
+
+            // Phase 3: User.CreatedAt SQL default (for existing rows during migration)
+            modelBuilder.Entity<User>()
+                .Property(u => u.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
         }
     }
 }
