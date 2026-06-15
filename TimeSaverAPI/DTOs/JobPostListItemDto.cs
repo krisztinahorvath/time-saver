@@ -16,5 +16,6 @@ namespace TimeSaverAPI.DTOs
         public double EmployerAverageRating { get; set; }
         public int EmployerReviewCount { get; set; }
         public int ApplicationCount { get; set; }
+        public string? MainImageUrl { get; set; }
     }
 }

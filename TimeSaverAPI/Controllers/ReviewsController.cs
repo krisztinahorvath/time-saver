@@ -5,6 +5,7 @@ using System.Security.Claims;
 using TimeSaverAPI.Data;
 using TimeSaverAPI.DTOs;
 using TimeSaverAPI.Models;
+using TimeSaverAPI.Services;
 
 namespace TimeSaverAPI.Controllers
 {
@@ -14,17 +15,18 @@ namespace TimeSaverAPI.Controllers
     public class ReviewsController : ControllerBase
     {
         private readonly TimeSaverContext _context;
+        private readonly INotificationService _notifications;
 
-        public ReviewsController(TimeSaverContext context)
+        public ReviewsController(TimeSaverContext context, INotificationService notifications)
         {
-            _context = context;
+            _context       = context;
+            _notifications = notifications;
         }
 
         private long CurrentUserId =>
             long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         // GET: api/reviews/given
-        // Returns the list of user IDs that the current user has already reviewed
         [HttpGet("reviews/given")]
         public async Task<IActionResult> GetGivenReviews()
         {
@@ -43,8 +45,8 @@ namespace TimeSaverAPI.Controllers
             if (id == CurrentUserId)
                 return BadRequest(new { message = "Nu îți poți lăsa o recenzie ție însuți." });
 
-            var reviewedUserExists = await _context.Users.AnyAsync(u => u.Id == id);
-            if (!reviewedUserExists) return NotFound(new { message = "Utilizatorul nu a fost găsit." });
+            var reviewedUser = await _context.Users.FindAsync(id);
+            if (reviewedUser == null) return NotFound(new { message = "Utilizatorul nu a fost găsit." });
 
             bool workedTogether = await _context.JobPosts.AnyAsync(j =>
                 j.Status == JobStatus.Completed &&
@@ -60,17 +62,27 @@ namespace TimeSaverAPI.Controllers
             if (alreadyReviewed)
                 return BadRequest(new { message = "Ai recenzat deja acest utilizator." });
 
+            var reviewer     = await _context.Users.FindAsync(CurrentUserId);
+            var reviewerName = reviewer?.Name ?? "Cineva";
+
             var review = new Review
             {
                 ReviewerUserId = CurrentUserId,
                 ReviewedUserId = id,
-                Rating = dto.Rating,
-                Comment = dto.Comment?.Trim() ?? string.Empty,
-                CreatedAt = DateTime.UtcNow
+                Rating         = dto.Rating,
+                Comment        = dto.Comment?.Trim() ?? string.Empty,
+                CreatedAt      = DateTime.UtcNow
             };
 
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
+
+            // Notify reviewed user
+            await _notifications.NotifyAsync(
+                userId:  id,
+                type:    NotificationType.NewReview,
+                title:   "Recenzie noua",
+                message: $"{reviewerName} ti-a lasat o recenzie de {dto.Rating} stele.");
 
             return Ok(new { message = "Recenzia a fost trimisă cu succes." });
         }
@@ -89,12 +101,12 @@ namespace TimeSaverAPI.Controllers
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new
                 {
-                    id = r.Id,
-                    rating = r.Rating,
-                    comment = r.Comment,
-                    createdAt = r.CreatedAt,
+                    id             = r.Id,
+                    rating         = r.Rating,
+                    comment        = r.Comment,
+                    createdAt      = r.CreatedAt,
                     reviewerUserId = r.ReviewerUserId,
-                    reviewerName = r.ReviewerUser != null ? r.ReviewerUser.Name : null
+                    reviewerName   = r.ReviewerUser != null ? r.ReviewerUser.Name : null
                 })
                 .ToListAsync();
 
@@ -105,7 +117,7 @@ namespace TimeSaverAPI.Controllers
             return Ok(new
             {
                 averageRating = Math.Round(averageRating, 2),
-                reviewCount = reviews.Count,
+                reviewCount   = reviews.Count,
                 reviews
             });
         }

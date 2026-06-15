@@ -13,8 +13,9 @@ import PostJob        from './components/PostJob';
 import MyJobs         from './components/MyJobs';
 import MyApplications from './components/MyApplications';
 import Profile        from './components/Profile';
-import PublicProfile  from './components/PublicProfile';
-import NotFound       from './components/NotFound';
+import PublicProfile      from './components/PublicProfile';
+import NotificationsPage from './components/NotificationsPage';
+import NotFound           from './components/NotFound';
 
 // Redirects to /login and saves the intended path so Login can restore it.
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -71,6 +72,9 @@ function App() {
       } />
       <Route path="/profile" element={
         <ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>
+      } />
+      <Route path="/notifications" element={
+        <ProtectedRoute><Layout><NotificationsPage /></Layout></ProtectedRoute>
       } />
 
       {/* Legacy redirects */}

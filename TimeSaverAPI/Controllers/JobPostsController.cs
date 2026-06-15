@@ -5,6 +5,7 @@ using System.Security.Claims;
 using TimeSaverAPI.Data;
 using TimeSaverAPI.DTOs;
 using TimeSaverAPI.Models;
+using TimeSaverAPI.Services;
 
 namespace TimeSaverAPI.Controllers
 {
@@ -14,10 +15,12 @@ namespace TimeSaverAPI.Controllers
     public class JobPostsController : ControllerBase
     {
         private readonly TimeSaverContext _context;
+        private readonly INotificationService _notifications;
 
-        public JobPostsController(TimeSaverContext context)
+        public JobPostsController(TimeSaverContext context, INotificationService notifications)
         {
-            _context = context;
+            _context       = context;
+            _notifications = notifications;
         }
 
         private long CurrentUserId =>
@@ -67,28 +70,34 @@ namespace TimeSaverAPI.Controllers
             var jobs = await query
                 .Include(j => j.User).ThenInclude(u => u!.ReceivedReviews)
                 .Include(j => j.JobApplications)
+                .Include(j => j.Images)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            var items = jobs.Select(j => new JobPostListItemDto
+            var items = jobs.Select(j =>
             {
-                Id          = j.Id,
-                Title       = j.Title,
-                Description = j.Description,
-                Budget      = j.Budget,
-                Status      = j.Status.ToString(),
-                Category    = j.Category.ToString(),
-                Location    = j.Location,
-                CreatedAt   = j.CreatedAt,
-                Deadline    = j.Deadline,
-                UserId      = j.UserId,
-                UserName    = j.User?.Name,
-                EmployerAverageRating = j.User?.ReceivedReviews != null && j.User.ReceivedReviews.Any()
-                    ? Math.Round(j.User.ReceivedReviews.Average(r => r.Rating), 1)
-                    : 0,
-                EmployerReviewCount = j.User?.ReceivedReviews?.Count ?? 0,
-                ApplicationCount    = j.JobApplications?.Count ?? 0,
+                var mainImg = j.Images?.FirstOrDefault(i => i.IsMain) ?? j.Images?.FirstOrDefault();
+                return new JobPostListItemDto
+                {
+                    Id          = j.Id,
+                    Title       = j.Title,
+                    Description = j.Description,
+                    Budget      = j.Budget,
+                    Status      = j.Status.ToString(),
+                    Category    = j.Category.ToString(),
+                    Location    = j.Location,
+                    CreatedAt   = j.CreatedAt,
+                    Deadline    = j.Deadline,
+                    UserId      = j.UserId,
+                    UserName    = j.User?.Name,
+                    EmployerAverageRating = j.User?.ReceivedReviews != null && j.User.ReceivedReviews.Any()
+                        ? Math.Round(j.User.ReceivedReviews.Average(r => r.Rating), 1)
+                        : 0,
+                    EmployerReviewCount = j.User?.ReceivedReviews?.Count ?? 0,
+                    ApplicationCount    = j.JobApplications?.Count ?? 0,
+                    MainImageUrl        = mainImg?.ImageUrl,
+                };
             }).ToList();
 
             return Ok(new PagedResult<JobPostListItemDto>
@@ -137,16 +146,16 @@ namespace TimeSaverAPI.Controllers
         {
             var jobPost = new JobPost
             {
-                Title                = dto.Title,
-                Description          = dto.Description,
-                Budget               = dto.Budget,
-                Category             = dto.Category!.Value,
-                Location             = dto.Location,
-                Deadline             = dto.Deadline,
-                SpecialRequirements  = dto.SpecialRequirements,
-                Status               = JobStatus.Open,
-                CreatedAt            = DateTime.UtcNow,
-                UserId               = CurrentUserId
+                Title               = dto.Title,
+                Description         = dto.Description,
+                Budget              = dto.Budget,
+                Category            = dto.Category!.Value,
+                Location            = dto.Location,
+                Deadline            = dto.Deadline,
+                SpecialRequirements = dto.SpecialRequirements,
+                Status              = JobStatus.Open,
+                CreatedAt           = DateTime.UtcNow,
+                UserId              = CurrentUserId
             };
 
             _context.JobPosts.Add(jobPost);
@@ -185,6 +194,18 @@ namespace TimeSaverAPI.Controllers
             jobPost.AcceptedByUserId = application.UserId;
 
             await _context.SaveChangesAsync();
+
+            // Notify accepted worker
+            if (application.UserId.HasValue)
+            {
+                await _notifications.NotifyAsync(
+                    userId:           application.UserId.Value,
+                    type:             NotificationType.ApplicationAccepted,
+                    title:            "Aplicatie acceptata!",
+                    message:          $"Aplicatia ta la jobul '{jobPost.Title}' a fost acceptata. Poti incepe lucrul!",
+                    relatedJobPostId: jobPost.Id);
+            }
+
             return NoContent();
         }
 
@@ -234,6 +255,21 @@ namespace TimeSaverAPI.Controllers
 
             jobPost.Status = JobStatus.Completed;
             await _context.SaveChangesAsync();
+
+            // Notify the other party
+            long? recipientId = CurrentUserId == jobPost.UserId
+                ? jobPost.AcceptedByUserId
+                : (long?)jobPost.UserId;
+
+            if (recipientId.HasValue)
+            {
+                await _notifications.NotifyAsync(
+                    userId:           recipientId.Value,
+                    type:             NotificationType.JobCompleted,
+                    title:            "Job finalizat",
+                    message:          $"Jobul '{jobPost.Title}' a fost marcat ca finalizat.",
+                    relatedJobPostId: jobPost.Id);
+            }
 
             return Ok(jobPost);
         }

@@ -1,4 +1,4 @@
-﻿using TimeSaverAPI.Models;
+using TimeSaverAPI.Models;
 using Microsoft.EntityFrameworkCore;
 
 namespace TimeSaverAPI.Data
@@ -17,6 +17,7 @@ namespace TimeSaverAPI.Data
         public virtual DbSet<JobPostImage> JobPostImages { get; set; }
         public virtual DbSet<Review> Reviews { get; set; }
         public virtual DbSet<Message> Messages { get; set; }
+        public virtual DbSet<Notification> Notifications { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -41,7 +42,8 @@ namespace TimeSaverAPI.Data
             modelBuilder.Entity<JobPostImage>()
                 .HasOne(i => i.JobPost)
                 .WithMany(j => j.Images)
-                .HasForeignKey(i => i.JobPostId);
+                .HasForeignKey(i => i.JobPostId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             // job posts and users
             modelBuilder.Entity<JobPost>()
@@ -76,6 +78,13 @@ namespace TimeSaverAPI.Data
                 .HasForeignKey(m => m.SenderId)
                 .OnDelete(DeleteBehavior.ClientCascade);
 
+            // notifications → user
+            modelBuilder.Entity<Notification>()
+                .HasOne(n => n.User)
+                .WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             // Phase 3: discovery indexes for filtering/sorting
             modelBuilder.Entity<JobPost>().HasIndex(j => j.Status);
             modelBuilder.Entity<JobPost>().HasIndex(j => j.Category);
@@ -85,6 +94,10 @@ namespace TimeSaverAPI.Data
             modelBuilder.Entity<User>()
                 .Property(u => u.CreatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
+
+            // Phase 4: Notification indexes
+            modelBuilder.Entity<Notification>().HasIndex(n => n.UserId);
+            modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead });
         }
     }
 }

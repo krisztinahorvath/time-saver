@@ -28,6 +28,8 @@
 
         public virtual ICollection<Message>? SentMessages { get; set; }
 
+        public virtual ICollection<Notification>? Notifications { get; set; }
+
         public DateTime CreatedAt { get; set; }
     }
 }

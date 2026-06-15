@@ -1,3 +1,17 @@
+/* ── Job card thumbnail ── */
+.jc-thumb-wrap {
+  margin: -1.25rem -1.25rem 0.9rem;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow: hidden;
+  height: 140px;
+}
+.jc-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* ── Header ── */
 .explore-header {
   display: flex;

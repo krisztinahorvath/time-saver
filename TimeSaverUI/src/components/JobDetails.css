@@ -55,8 +55,86 @@
 .jd-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
 .jd-section p  { font-size: 0.92rem; color: var(--text-muted); line-height: 1.7; white-space: pre-line; }
 
-.jd-images { display: flex; flex-wrap: wrap; gap: 0.75rem; }
-.jd-img    { width: 120px; height: 90px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--border); }
+/* Image gallery */
+.jd-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 0.75rem;
+}
+
+.jd-gallery-item {
+  position: relative;
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 2px solid var(--border);
+  background: var(--bg);
+  aspect-ratio: 4/3;
+}
+
+.jd-gallery-item.jd-gallery-main {
+  border-color: var(--primary);
+  grid-column: span 2;
+  grid-row: span 2;
+}
+
+.jd-gallery-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  cursor: pointer;
+  display: block;
+  transition: opacity var(--transition);
+}
+.jd-gallery-img:hover { opacity: 0.9; }
+
+.jd-gallery-badge {
+  position: absolute;
+  top: 0.35rem;
+  left: 0.35rem;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+}
+
+.jd-gallery-controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(0,0,0,0.55);
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.3rem 0.4rem;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+.jd-gallery-item:hover .jd-gallery-controls { opacity: 1; }
+
+.btn-xs { padding: 0.2rem 0.45rem; font-size: 0.72rem; }
+
+.jd-upload-section { border-top: 1px solid var(--border); padding-top: 1.25rem; }
+
+/* Lightbox */
+.jd-lightbox {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.85);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-out;
+}
+.jd-lightbox img {
+  max-width: 90vw;
+  max-height: 90vh;
+  object-fit: contain;
+  border-radius: var(--radius-lg);
+}
 
 .jd-owner-actions {
   display: flex;

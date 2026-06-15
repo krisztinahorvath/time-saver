@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+const BASE_API = import.meta.env.VITE_API_URL ?? 'https://localhost:7051/api';
+
+// Origin of the API server (no /api suffix), used to construct image URLs.
+export const API_ORIGIN = BASE_API.replace(/\/api\/?$/, '');
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL ?? 'https://localhost:7051/api',
+  baseURL: BASE_API,
 });
 
 api.interceptors.request.use((config) => {

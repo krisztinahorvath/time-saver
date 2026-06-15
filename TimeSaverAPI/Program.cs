@@ -11,6 +11,7 @@ using System.Text;
 using TimeSaverAPI.Data;
 using TimeSaverAPI.DTOs;
 using TimeSaverAPI.Models;
+using TimeSaverAPI.Services;
 
 namespace TimeSaverAPI
 {
@@ -56,6 +57,8 @@ namespace TimeSaverAPI
             });
 
             builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
+            builder.Services.AddScoped<INotificationService, NotificationService>();
+            builder.Services.AddScoped<IEmailService, NoOpEmailService>();
 
             builder.Services.AddFluentValidationAutoValidation();
             builder.Services.AddValidatorsFromAssemblyContaining<UserRegisterDTO>();
@@ -85,6 +88,7 @@ namespace TimeSaverAPI
                 app.UseCors(options => options.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
             }
 
+            app.UseStaticFiles();
             app.UseHttpsRedirection();
             app.UseAuthentication();
             app.UseAuthorization();

@@ -1,10 +1,11 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TimeSaverAPI.Data;
 using TimeSaverAPI.DTOs;
 using TimeSaverAPI.Models;
+using TimeSaverAPI.Services;
 
 namespace TimeSaverAPI.Controllers
 {
@@ -14,17 +15,18 @@ namespace TimeSaverAPI.Controllers
     public class JobApplicationsController : ControllerBase
     {
         private readonly TimeSaverContext _context;
+        private readonly INotificationService _notifications;
 
-        public JobApplicationsController(TimeSaverContext context)
+        public JobApplicationsController(TimeSaverContext context, INotificationService notifications)
         {
-            _context = context;
+            _context       = context;
+            _notifications = notifications;
         }
 
         private long CurrentUserId =>
             long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
         // GET: api/JobApplications
-        // Only returns applications belonging to the logged in user
         [HttpGet]
         public async Task<ActionResult<IEnumerable<JobApplication>>> GetJobApplications()
         {
@@ -45,7 +47,6 @@ namespace TimeSaverAPI.Controllers
 
             if (jobApplication == null) return NotFound();
 
-            // only the applicant or the job poster can see it
             if (jobApplication.UserId != CurrentUserId &&
                 jobApplication.JobPost.UserId != CurrentUserId)
                 return Forbid();
@@ -57,7 +58,6 @@ namespace TimeSaverAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<JobApplication>> PostJobApplication(CreateJobApplicationDto dto)
         {
-            // make sure the job exists and is Open
             var jobPost = await _context.JobPosts.FindAsync(dto.JobPostId);
             if (jobPost == null) return NotFound("Job post not found.");
             if (jobPost.Status != JobStatus.Open)
@@ -65,29 +65,38 @@ namespace TimeSaverAPI.Controllers
             if (jobPost.UserId == CurrentUserId)
                 return BadRequest("You cannot apply to your own job.");
 
-            // check for duplicate application
             bool alreadyApplied = await _context.JobApplications
                 .AnyAsync(a => a.JobPostId == dto.JobPostId && a.UserId == CurrentUserId);
             if (alreadyApplied)
                 return BadRequest("You have already applied to this job.");
 
+            var applicant     = await _context.Users.FindAsync(CurrentUserId);
+            var applicantName = applicant?.Name ?? "Un utilizator";
+
             var jobApplication = new JobApplication
             {
-                Message = dto.Message,
-                JobPostId = dto.JobPostId,
+                Message              = dto.Message,
+                JobPostId            = dto.JobPostId,
                 JobApplicationStatus = JobApplicationStatus.Pending,
-                CreatedAt = DateTime.UtcNow,
-                UserId = CurrentUserId
+                CreatedAt            = DateTime.UtcNow,
+                UserId               = CurrentUserId
             };
 
             _context.JobApplications.Add(jobApplication);
             await _context.SaveChangesAsync();
 
+            // Notify employer
+            await _notifications.NotifyAsync(
+                userId:           jobPost.UserId,
+                type:             NotificationType.NewApplication,
+                title:            "Aplicatie noua",
+                message:          $"{applicantName} a aplicat la jobul '{jobPost.Title}'.",
+                relatedJobPostId: jobPost.Id);
+
             return CreatedAtAction(nameof(GetJobApplication), new { id = jobApplication.Id }, jobApplication);
         }
 
         // DELETE: api/JobApplications/5
-        // Only the applicant can withdraw, and only if still Pending
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteJobApplication(long id)
         {

@@ -8,6 +8,13 @@ export type JobCategory =
   | 'Electrical' | 'FurnitureAssembly' | 'Design' | 'Marketing'
   | 'Babysitting' | 'Events';
 
+export type NotificationType =
+  | 'NewApplication'
+  | 'ApplicationAccepted'
+  | 'NewMessage'
+  | 'NewReview'
+  | 'JobCompleted';
+
 export interface AuthUser {
   userId: number;
   name: string;
@@ -39,7 +46,19 @@ export interface PublicProfile {
 export interface JobPostImage {
   id: number;
   imageUrl: string;
+  isMain: boolean;
+  uploadedAt: string;
   jobPostId: number;
+}
+
+export interface Notification {
+  id: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  relatedJobPostId?: number;
+  isRead: boolean;
+  createdAt: string;
 }
 
 export interface JobApplication {
@@ -94,6 +113,7 @@ export interface JobPostListItem {
   employerAverageRating: number;
   employerReviewCount: number;
   applicationCount: number;
+  mainImageUrl?: string;
 }
 
 export interface PagedResult<T> {
@@ -148,16 +168,16 @@ export interface CreateJobPostPayload {
 }
 
 export const CATEGORY_LABELS: Record<JobCategory, string> = {
-  Cleaning:         'Curățenie',
+  Cleaning:         'Curatenie',
   Delivery:         'Livrare & Transport',
-  Tutoring:         'Meditații',
-  Gardening:        'Grădinărit',
-  Moving:           'Mutări',
-  PetCare:          'Îngrijire animale',
+  Tutoring:         'Meditatii',
+  Gardening:        'Gradinarit',
+  Moving:           'Mutari',
+  PetCare:          'Ingrijire animale',
   TechSupport:      'IT & Tech support',
   Other:            'Altele',
-  Repairs:          'Reparații',
-  Plumbing:         'Instalații',
+  Repairs:          'Reparatii',
+  Plumbing:         'Instalatii',
   Electrical:       'Electricitate',
   FurnitureAssembly:'Montaj mobilier',
   Design:           'Design',
@@ -186,9 +206,17 @@ export const CATEGORY_ICONS: Record<JobCategory, string> = {
 };
 
 export const STATUS_LABELS: Record<JobStatus, string> = {
-  Pending:    'În așteptare',
+  Pending:    'In asteptare',
   Open:       'Disponibil',
-  InProgress: 'În desfășurare',
+  InProgress: 'In desfasurare',
   Completed:  'Finalizat',
   Cancelled:  'Anulat',
+};
+
+export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
+  NewApplication:      '📩',
+  ApplicationAccepted: '✅',
+  NewMessage:          '💬',
+  NewReview:           '⭐',
+  JobCompleted:        '🏆',
 };

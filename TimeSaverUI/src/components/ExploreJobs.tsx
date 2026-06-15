@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import api from '../api/axiosConfig';
+import api, { API_ORIGIN } from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import type { JobPostListItem, JobCategory, PagedResult } from '../types';
@@ -287,6 +287,13 @@ const ExploreJobs: React.FC = () => {
 
               return (
                 <div key={job.id} className="job-card card">
+                  {/* Main image thumbnail */}
+                  {job.mainImageUrl && (
+                    <div className="jc-thumb-wrap">
+                      <img src={API_ORIGIN + job.mainImageUrl} alt={job.title} className="jc-thumb" />
+                    </div>
+                  )}
+
                   {/* Top row: category + status */}
                   <div className="jc-top">
                     <span className="jc-category">
