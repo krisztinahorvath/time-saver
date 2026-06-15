@@ -25,5 +25,7 @@
 
         // Reviews this user received
         public virtual ICollection<Review>? ReceivedReviews { get; set; }
+
+        public virtual ICollection<Message>? SentMessages { get; set; }
     }
 }

@@ -16,6 +16,7 @@ namespace TimeSaverAPI.Data
         public virtual DbSet<JobApplication> JobApplications { get; set; }
         public virtual DbSet<JobPostImage> JobPostImages { get; set; }
         public virtual DbSet<Review> Reviews { get; set; }
+        public virtual DbSet<Message> Messages { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -60,6 +61,20 @@ namespace TimeSaverAPI.Data
                 .HasOne(ja => ja.JobPost)
                 .WithMany(j => j.JobApplications)
                 .HasForeignKey(ja => ja.JobPostId);
+
+            // messages → job post
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.JobPost)
+                .WithMany(j => j.Messages)
+                .HasForeignKey(m => m.JobPostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // messages → sender (no cascade to avoid multiple cascade paths)
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.Sender)
+                .WithMany(u => u.SentMessages)
+                .HasForeignKey(m => m.SenderId)
+                .OnDelete(DeleteBehavior.ClientCascade);
         }
     }
 }

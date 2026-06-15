@@ -81,7 +81,7 @@ export interface ReviewItem {
   rating: number;
   comment: string;
   createdAt: string;
-  reviewerUserId: number;
+  reviewerUserId?: number;
   reviewedUserId?: number;
   reviewerName?: string;
 }
@@ -90,6 +90,16 @@ export interface ReviewsResponse {
   averageRating: number;
   reviewCount: number;
   reviews: ReviewItem[];
+}
+
+export interface Message {
+  id: number;
+  jobPostId: number;
+  senderId: number;
+  senderName: string;
+  content: string;
+  sentAt: string;
+  isRead: boolean;
 }
 
 export interface LoginResponse {

@@ -2,16 +2,26 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
+import { useAuth } from '../context/AuthContext';
 import type { JobApplication } from '../types';
 import { STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
+import ReviewModal from './ReviewModal';
 import './MyApplications.css';
 
+interface ReviewTarget {
+  userId: number;
+  userName: string;
+}
+
 const MyApplications: React.FC = () => {
+  const { user } = useAuth();
   const [apps, setApps] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [confirmPending, setConfirmPending] = useState<number | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
 
   const fetchApps = async () => {
     try {
@@ -24,7 +34,19 @@ const MyApplications: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchApps(); }, []);
+  const fetchReviewedIds = async () => {
+    try {
+      const res = await api.get<number[]>('/reviews/given');
+      setReviewedIds(new Set(res.data));
+    } catch {
+      // non-blocking
+    }
+  };
+
+  useEffect(() => {
+    fetchApps();
+    fetchReviewedIds();
+  }, []);
 
   const withdraw = async (appId: number) => {
     try {
@@ -36,6 +58,12 @@ const MyApplications: React.FC = () => {
     } finally {
       setConfirmPending(null);
     }
+  };
+
+  const handleReviewSuccess = () => {
+    setReviewTarget(null);
+    setNotification({ msg: 'Recenzie trimisă cu succes!', type: 'success' });
+    fetchReviewedIds();
   };
 
   if (loading) return <div className="loading-wrap">Se încarcă...</div>;
@@ -53,6 +81,15 @@ const MyApplications: React.FC = () => {
           danger
           onConfirm={() => withdraw(confirmPending)}
           onCancel={() => setConfirmPending(null)}
+        />
+      )}
+
+      {reviewTarget && (
+        <ReviewModal
+          reviewedUserId={reviewTarget.userId}
+          reviewedUserName={reviewTarget.userName}
+          onClose={() => setReviewTarget(null)}
+          onSuccess={handleReviewSuccess}
         />
       )}
 
@@ -90,7 +127,14 @@ const MyApplications: React.FC = () => {
               <h2 className="section-title">✅ Joburi acceptate</h2>
               <div className="ma-list">
                 {accepted.map(app => (
-                  <AppCard key={app.id} app={app} onWithdraw={id => setConfirmPending(id)} />
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    currentUserId={user?.userId}
+                    reviewedIds={reviewedIds}
+                    onWithdraw={id => setConfirmPending(id)}
+                    onReview={setReviewTarget}
+                  />
                 ))}
               </div>
             </div>
@@ -100,7 +144,14 @@ const MyApplications: React.FC = () => {
               <h2 className="section-title">⏳ În așteptare</h2>
               <div className="ma-list">
                 {pending.map(app => (
-                  <AppCard key={app.id} app={app} onWithdraw={id => setConfirmPending(id)} />
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    currentUserId={user?.userId}
+                    reviewedIds={reviewedIds}
+                    onWithdraw={id => setConfirmPending(id)}
+                    onReview={setReviewTarget}
+                  />
                 ))}
               </div>
             </div>
@@ -110,7 +161,14 @@ const MyApplications: React.FC = () => {
               <h2 className="section-title">❌ Respinse</h2>
               <div className="ma-list">
                 {rejected.map(app => (
-                  <AppCard key={app.id} app={app} onWithdraw={id => setConfirmPending(id)} />
+                  <AppCard
+                    key={app.id}
+                    app={app}
+                    currentUserId={user?.userId}
+                    reviewedIds={reviewedIds}
+                    onWithdraw={id => setConfirmPending(id)}
+                    onReview={setReviewTarget}
+                  />
                 ))}
               </div>
             </div>
@@ -123,49 +181,65 @@ const MyApplications: React.FC = () => {
 
 interface AppCardProps {
   app: JobApplication;
+  currentUserId?: number;
+  reviewedIds: Set<number>;
   onWithdraw: (id: number) => void;
+  onReview: (target: ReviewTarget) => void;
 }
 
-const AppCard: React.FC<AppCardProps> = ({ app, onWithdraw }) => (
-  <div className={`ma-card card ma-card-${app.jobApplicationStatus.toLowerCase()}`}>
-    <div className="ma-card-header">
-      <Link to={`/jobs/${app.jobPostId}`} className="ma-card-title">
-        {app.jobPost?.title ?? `Job #${app.jobPostId}`}
-      </Link>
-      <span className={`badge badge-${app.jobApplicationStatus.toLowerCase()}`}>
-        {app.jobApplicationStatus === 'Accepted' ? 'Acceptat' : app.jobApplicationStatus === 'Rejected' ? 'Respins' : 'În așteptare'}
-      </span>
-    </div>
+const AppCard: React.FC<AppCardProps> = ({ app, reviewedIds, onWithdraw, onReview }) => {
+  const jobCompleted = app.jobPost?.status === 'Completed';
+  const employerId  = app.jobPost?.userId;
+  const alreadyReviewed = employerId !== undefined && reviewedIds.has(employerId);
 
-    <div className="ma-card-meta">
-      {app.jobPost?.budget !== undefined && <span>💰 {app.jobPost.budget} RON</span>}
-      {app.jobPost?.location && <span>📍 {app.jobPost.location}</span>}
-      {app.jobPost?.status && (
-        <span className={`badge badge-${app.jobPost.status.toLowerCase()}`}>
-          {STATUS_LABELS[app.jobPost.status as keyof typeof STATUS_LABELS] ?? app.jobPost.status}
-        </span>
-      )}
-      <span>📅 Aplicat: {new Date(app.createdAt).toLocaleDateString('ro-RO')}</span>
-    </div>
-
-    <p className="ma-msg">Mesajul tău: <em>"{app.message}"</em></p>
-
-    <div className="ma-card-actions">
-      <Link to={`/jobs/${app.jobPostId}`} className="btn btn-ghost btn-sm">
-        Vezi job
-      </Link>
-      {app.jobApplicationStatus === 'Pending' && (
-        <button className="btn btn-danger btn-sm" onClick={() => onWithdraw(app.id)}>
-          Retrage
-        </button>
-      )}
-      {app.jobApplicationStatus === 'Accepted' && app.jobPost?.status === 'Completed' && (
-        <Link to={`/users/${app.jobPost?.userId}/profile`} className="btn btn-outline btn-sm">
-          Lasă review
+  return (
+    <div className={`ma-card card ma-card-${app.jobApplicationStatus.toLowerCase()}`}>
+      <div className="ma-card-header">
+        <Link to={`/jobs/${app.jobPostId}`} className="ma-card-title">
+          {app.jobPost?.title ?? `Job #${app.jobPostId}`}
         </Link>
-      )}
+        <span className={`badge badge-${app.jobApplicationStatus.toLowerCase()}`}>
+          {app.jobApplicationStatus === 'Accepted' ? 'Acceptat' : app.jobApplicationStatus === 'Rejected' ? 'Respins' : 'În așteptare'}
+        </span>
+      </div>
+
+      <div className="ma-card-meta">
+        {app.jobPost?.budget !== undefined && <span>💰 {app.jobPost.budget} RON</span>}
+        {app.jobPost?.location && <span>📍 {app.jobPost.location}</span>}
+        {app.jobPost?.status && (
+          <span className={`badge badge-${app.jobPost.status.toLowerCase()}`}>
+            {STATUS_LABELS[app.jobPost.status as keyof typeof STATUS_LABELS] ?? app.jobPost.status}
+          </span>
+        )}
+        <span>📅 Aplicat: {new Date(app.createdAt).toLocaleDateString('ro-RO')}</span>
+      </div>
+
+      <p className="ma-msg">Mesajul tău: <em>"{app.message}"</em></p>
+
+      <div className="ma-card-actions">
+        <Link to={`/jobs/${app.jobPostId}`} className="btn btn-ghost btn-sm">
+          Vezi job
+        </Link>
+        {app.jobApplicationStatus === 'Pending' && (
+          <button className="btn btn-danger btn-sm" onClick={() => onWithdraw(app.id)}>
+            Retrage
+          </button>
+        )}
+        {app.jobApplicationStatus === 'Accepted' && jobCompleted && employerId !== undefined && (
+          alreadyReviewed ? (
+            <span className="review-given-badge">✓ Recenzie trimisă</span>
+          ) : (
+            <button
+              className="btn btn-outline btn-sm"
+              onClick={() => onReview({ userId: employerId, userName: 'Angajatorul' })}
+            >
+              ★ Recenzează angajatorul
+            </button>
+          )
+        )}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default MyApplications;

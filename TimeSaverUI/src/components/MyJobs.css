@@ -74,3 +74,12 @@
 .mj-app-user a { color: var(--text); text-decoration: none; }
 .mj-app-user a:hover { color: var(--primary); }
 .mj-app-msg { font-size: 0.82rem; color: var(--text-muted); font-style: italic; margin-bottom: 0.5rem; }
+
+.review-given-badge {
+  font-size: 0.8rem;
+  color: var(--success, #10b981);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}

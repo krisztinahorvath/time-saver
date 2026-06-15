@@ -6,6 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import type { JobPost } from '../types';
 import { CATEGORY_LABELS, STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
+import ReviewModal from './ReviewModal';
+import Chat from './Chat';
 import './JobDetails.css';
 
 interface ConfirmState {
@@ -13,6 +15,11 @@ interface ConfirmState {
   confirmLabel: string;
   danger: boolean;
   action: () => Promise<void>;
+}
+
+interface ReviewState {
+  userId: number;
+  userName: string;
 }
 
 const JobDetails: React.FC = () => {
@@ -26,6 +33,9 @@ const JobDetails: React.FC = () => {
   const [applying, setApplying] = useState(false);
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [reviewState, setReviewState] = useState<ReviewState | null>(null);
+  // IDs the current user has already reviewed
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
 
   const fetchJob = async () => {
     try {
@@ -38,11 +48,24 @@ const JobDetails: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchJob(); }, [id]);
+  const fetchReviewedIds = async () => {
+    try {
+      const res = await api.get<number[]>('/reviews/given');
+      setReviewedIds(new Set(res.data));
+    } catch {
+      // non-blocking
+    }
+  };
+
+  useEffect(() => {
+    fetchJob();
+    fetchReviewedIds();
+  }, [id]);
 
   const isOwner  = job?.userId === user?.userId;
   const isWorker = job?.acceptedByUserId === user?.userId;
   const applied  = job?.jobApplications?.some(a => a.userId === user?.userId) ?? false;
+  const canChat  = (isOwner || isWorker) && (job?.status === 'InProgress' || job?.status === 'Completed');
 
   const showConfirm = (message: string, action: () => Promise<void>, opts = { confirmLabel: 'Confirmă', danger: false }) => {
     setConfirmState({ message, action, confirmLabel: opts.confirmLabel, danger: opts.danger });
@@ -56,13 +79,14 @@ const JobDetails: React.FC = () => {
   };
 
   const handleApply = async () => {
-    if (!applyMsg.trim()) {
+    const trimmed = applyMsg.trim();
+    if (!trimmed || trimmed.length < 10) {
       setApplyStatus({ type: 'error', msg: 'Scrie un mesaj de aplicare (min. 10 caractere).' });
       return;
     }
     setApplying(true);
     try {
-      await api.post('/JobApplications', { jobPostId: Number(id), message: applyMsg });
+      await api.post('/JobApplications', { jobPostId: Number(id), message: trimmed });
       setApplyStatus({ type: 'success', msg: 'Aplicație trimisă cu succes!' });
       setApplyMsg('');
       fetchJob();
@@ -136,6 +160,12 @@ const JobDetails: React.FC = () => {
     );
   };
 
+  const handleReviewSuccess = () => {
+    setReviewState(null);
+    setNotification({ type: 'success', msg: 'Recenzia a fost trimisă cu succes!' });
+    fetchReviewedIds();
+  };
+
   if (loading) return <div className="loading-wrap">Se încarcă...</div>;
   if (!job) return (
     <div className="page-wrap">
@@ -159,6 +189,15 @@ const JobDetails: React.FC = () => {
         />
       )}
 
+      {reviewState && (
+        <ReviewModal
+          reviewedUserId={reviewState.userId}
+          reviewedUserName={reviewState.userName}
+          onClose={() => setReviewState(null)}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
+
       <Link to="/explore" className="back-link">← Înapoi la explorare</Link>
 
       {notification && (
@@ -167,12 +206,34 @@ const JobDetails: React.FC = () => {
         </div>
       )}
 
+      {/* Status timeline */}
+      <div className="jd-status-bar">
+        {(['Open', 'InProgress', 'Completed'] as const).map((s, i) => {
+          const steps = ['Open', 'InProgress', 'Completed'];
+          const currentIdx = steps.indexOf(job.status);
+          const isCancelled = job.status === 'Cancelled';
+          const isDone = isCancelled ? false : i <= currentIdx;
+          return (
+            <React.Fragment key={s}>
+              <div className={`jd-status-step ${isDone ? 'done' : ''} ${job.status === s ? 'current' : ''}`}>
+                <div className="jd-status-dot" />
+                <span>{s === 'Open' ? 'Disponibil' : s === 'InProgress' ? 'În desfășurare' : 'Finalizat'}</span>
+              </div>
+              {i < 2 && <div className={`jd-status-line ${isDone && i < currentIdx ? 'done' : ''}`} />}
+            </React.Fragment>
+          );
+        })}
+        {job.status === 'Cancelled' && (
+          <div className="jd-status-cancelled">✕ Anulat</div>
+        )}
+      </div>
+
       <div className="jd-layout">
         <div className="jd-main">
           <div className="card">
             <div className="jd-header">
               <div className="jd-category">{CATEGORY_LABELS[job.category] ?? job.category}</div>
-              <span className={`badge badge-${job.status.toLowerCase().replace('inprogress', 'inprogress')}`}>
+              <span className={`badge badge-${job.status.toLowerCase()}`}>
                 {STATUS_LABELS[job.status] ?? job.status}
               </span>
             </div>
@@ -223,19 +284,45 @@ const JobDetails: React.FC = () => {
                 {job.status === 'Open' && (
                   <button className="btn btn-danger btn-sm" onClick={deleteJob}>🗑 Șterge job</button>
                 )}
+                {/* Employer reviews worker after completion */}
+                {job.status === 'Completed' && job.acceptedByUserId && !reviewedIds.has(job.acceptedByUserId) && (
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => setReviewState({ userId: job.acceptedByUserId!, userName: job.acceptedByUser?.name ?? 'Prestator' })}
+                  >
+                    ★ Recenzează prestatorul
+                  </button>
+                )}
+                {job.status === 'Completed' && job.acceptedByUserId && reviewedIds.has(job.acceptedByUserId) && (
+                  <span className="review-given-badge">✓ Ai lăsat o recenzie</span>
+                )}
               </div>
             )}
 
-            {/* Worker: mark complete */}
-            {isWorker && job.status === 'InProgress' && !isOwner && (
+            {/* Worker actions */}
+            {isWorker && !isOwner && (
               <div className="jd-owner-actions">
-                <button className="btn btn-success" onClick={completeJob}>✓ Marchează finalizat</button>
+                {job.status === 'InProgress' && (
+                  <button className="btn btn-success" onClick={completeJob}>✓ Marchează finalizat</button>
+                )}
+                {/* Worker reviews employer after completion */}
+                {job.status === 'Completed' && !reviewedIds.has(job.userId) && (
+                  <button
+                    className="btn btn-outline"
+                    onClick={() => setReviewState({ userId: job.userId, userName: job.user?.name ?? 'Angajator' })}
+                  >
+                    ★ Recenzează angajatorul
+                  </button>
+                )}
+                {job.status === 'Completed' && reviewedIds.has(job.userId) && (
+                  <span className="review-given-badge">✓ Ai lăsat o recenzie</span>
+                )}
               </div>
             )}
           </div>
 
           {/* Apply section */}
-          {!isOwner && job.status === 'Open' && (
+          {!isOwner && !isWorker && job.status === 'Open' && (
             <div className="card jd-apply-card">
               <h3>Aplică la acest job</h3>
               {applied ? (
@@ -260,6 +347,18 @@ const JobDetails: React.FC = () => {
                 </>
               )}
             </div>
+          )}
+
+          {/* Chat */}
+          {canChat && (
+            <Chat
+              jobPostId={job.id}
+              otherPartyName={
+                isOwner
+                  ? (job.acceptedByUser?.name ?? 'Prestator')
+                  : (job.user?.name ?? 'Angajator')
+              }
+            />
           )}
         </div>
 

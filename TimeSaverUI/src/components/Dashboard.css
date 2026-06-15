@@ -134,3 +134,38 @@
   color: var(--text-muted);
   font-style: italic;
 }
+
+/* Highlighted "needs action" job card */
+.dash-job-card--highlight {
+  border-color: var(--primary, #6366f1);
+  border-left: 4px solid var(--primary, #6366f1);
+}
+
+/* Review cards */
+.dash-review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.dash-review-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.dash-review-job {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.dash-review-job:hover { color: var(--primary, #6366f1); }
+
+.accepted-list .app-card {
+  border-left-color: var(--success, #10b981);
+}

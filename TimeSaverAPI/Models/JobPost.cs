@@ -49,5 +49,6 @@ namespace TimeSaverAPI.Models
 
         public virtual ICollection<JobPostImage> Images { get; set; } = [];
         public virtual ICollection<JobApplication> JobApplications { get; set; } = [];
+        public virtual ICollection<Message> Messages { get; set; } = [];
     }
 }

@@ -145,6 +145,7 @@ namespace TimeSaverAPI.Controllers
         }
 
         // GET: api/Users/{id}/public-profile
+        [AllowAnonymous]
         [HttpGet("{id}/public-profile")]
         public async Task<IActionResult> GetPublicProfile(long id)
         {
@@ -167,6 +168,7 @@ namespace TimeSaverAPI.Controllers
                     rating = r.Rating,
                     comment = r.Comment,
                     createdAt = r.CreatedAt,
+                    reviewerUserId = r.ReviewerUserId,
                     reviewerName = r.ReviewerUser?.Name
                 })
                 .ToList();

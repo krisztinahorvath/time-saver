@@ -6,10 +6,11 @@ import { extractApiError } from '../utils/apiError';
 import type { JobPost, JobApplication } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
+import ReviewModal from './ReviewModal';
 import './Dashboard.css';
 
 function statusBadge(status: string) {
-  const cls = status.toLowerCase().replace('inprogress', 'inprogress');
+  const cls = status.toLowerCase();
   return <span className={`badge badge-${cls}`}>{STATUS_LABELS[status as keyof typeof STATUS_LABELS] ?? status}</span>;
 }
 
@@ -28,11 +29,20 @@ interface ConfirmState {
   action: () => Promise<void>;
 }
 
+interface ReviewTarget {
+  userId: number;
+  userName: string;
+}
+
+// ─── EMPLOYER DASHBOARD ────────────────────────────────────────────────────────
+
 const EmployerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
   const { user } = useAuth();
 
   const fetchJobs = async () => {
@@ -46,7 +56,19 @@ const EmployerDashboard: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchJobs(); }, []);
+  const fetchReviewedIds = async () => {
+    try {
+      const res = await api.get<number[]>('/reviews/given');
+      setReviewedIds(new Set(res.data));
+    } catch {
+      // non-blocking
+    }
+  };
+
+  useEffect(() => {
+    fetchJobs();
+    fetchReviewedIds();
+  }, []);
 
   const showConfirm = (message: string, action: () => Promise<void>, opts = { confirmLabel: 'Confirmă', danger: false }) => {
     setConfirmState({ message, action, confirmLabel: opts.confirmLabel, danger: opts.danger });
@@ -91,11 +113,25 @@ const EmployerDashboard: React.FC = () => {
     );
   };
 
+  const handleReviewSuccess = () => {
+    setReviewTarget(null);
+    setMsg({ text: 'Recenzie trimisă cu succes!', type: 'success' });
+    fetchReviewedIds();
+  };
+
   if (loading) return <div className="loading-wrap">Se încarcă...</div>;
 
   const openJobs      = jobs.filter(j => j.status === 'Open');
   const activeJobs    = jobs.filter(j => j.status === 'InProgress');
   const completedJobs = jobs.filter(j => j.status === 'Completed');
+  const totalApps     = jobs.reduce((s, j) => s + (j.jobApplications?.length || 0), 0);
+  const pendingApps   = jobs.reduce((s, j) => s + (j.jobApplications?.filter(a => a.jobApplicationStatus === 'Pending').length || 0), 0);
+
+  // Jobs needing action: Open with pending apps or InProgress needing completion
+  const actionNeeded = jobs.filter(j =>
+    (j.status === 'Open' && (j.jobApplications?.some(a => a.jobApplicationStatus === 'Pending') ?? false)) ||
+    j.status === 'InProgress'
+  );
 
   return (
     <div>
@@ -106,6 +142,15 @@ const EmployerDashboard: React.FC = () => {
           danger={confirmState.danger}
           onConfirm={handleConfirm}
           onCancel={() => setConfirmState(null)}
+        />
+      )}
+
+      {reviewTarget && (
+        <ReviewModal
+          reviewedUserId={reviewTarget.userId}
+          reviewedUserName={reviewTarget.userName}
+          onClose={() => setReviewTarget(null)}
+          onSuccess={handleReviewSuccess}
         />
       )}
 
@@ -124,13 +169,121 @@ const EmployerDashboard: React.FC = () => {
       )}
 
       <div className="dash-stats">
-        <div className="stat-card"><div className="stat-num">{openJobs.length}</div><div className="stat-label">Joburi active</div></div>
-        <div className="stat-card"><div className="stat-num">{activeJobs.length}</div><div className="stat-label">În desfășurare</div></div>
-        <div className="stat-card"><div className="stat-num">{completedJobs.length}</div><div className="stat-label">Finalizate</div></div>
-        <div className="stat-card"><div className="stat-num">{jobs.reduce((s, j) => s + (j.jobApplications?.length || 0), 0)}</div><div className="stat-label">Aplicații primite</div></div>
+        <div className="stat-card">
+          <div className="stat-num">{openJobs.length}</div>
+          <div className="stat-label">Disponibile</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--primary)' }}>{activeJobs.length}</div>
+          <div className="stat-label">În desfășurare</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--success)' }}>{completedJobs.length}</div>
+          <div className="stat-label">Finalizate</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: pendingApps > 0 ? 'var(--warning)' : undefined }}>{pendingApps}</div>
+          <div className="stat-label">Aplicații noi</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num">{totalApps}</div>
+          <div className="stat-label">Total aplicații</div>
+        </div>
       </div>
 
-      <h2 className="section-title">Joburile mele</h2>
+      {/* Action needed section */}
+      {actionNeeded.length > 0 && (
+        <>
+          <h2 className="section-title" style={{ marginTop: '1.5rem' }}>⚡ Necesită atenție</h2>
+          <div className="dash-jobs">
+            {actionNeeded.map(job => (
+              <div key={job.id} className="dash-job-card dash-job-card--highlight">
+                <div className="djc-header">
+                  <div>
+                    <div className="djc-title">
+                      <Link to={`/jobs/${job.id}`}>{job.title}</Link>
+                      {statusBadge(job.status)}
+                    </div>
+                    <div className="djc-meta">
+                      <span>💰 {job.budget} RON</span>
+                      <span>📍 {job.location}</span>
+                      <span>🏷️ {CATEGORY_LABELS[job.category] ?? job.category}</span>
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {job.status === 'InProgress' && (
+                      <button className="btn btn-success btn-sm" onClick={() => completeJob(job.id)}>
+                        ✓ Finalizează
+                      </button>
+                    )}
+                    <Link to={`/jobs/${job.id}`} className="btn btn-outline btn-sm">Gestionează</Link>
+                  </div>
+                </div>
+
+                {job.status === 'Open' && job.jobApplications && job.jobApplications.length > 0 && (
+                  <div className="djc-apps">
+                    <h4>Aplicații în așteptare ({job.jobApplications.filter(a => a.jobApplicationStatus === 'Pending').length})</h4>
+                    <div className="apps-list">
+                      {job.jobApplications
+                        .filter(a => a.jobApplicationStatus === 'Pending')
+                        .map(app => (
+                          <div key={app.id} className="app-row">
+                            <div className="app-info">
+                              <div className="app-user">
+                                <Link to={`/users/${app.userId}/profile`}>👤 {app.user?.name ?? `User #${app.userId}`}</Link>
+                                {appBadge(app.jobApplicationStatus)}
+                              </div>
+                              <p className="app-msg">"{app.message}"</p>
+                            </div>
+                            <button
+                              className="btn btn-primary btn-sm"
+                              onClick={() => acceptApp(job.id, app.id)}
+                            >
+                              Acceptă
+                            </button>
+                          </div>
+                        ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Completed jobs needing review */}
+      {completedJobs.some(j => j.acceptedByUserId && !reviewedIds.has(j.acceptedByUserId)) && (
+        <>
+          <h2 className="section-title" style={{ marginTop: '1.5rem' }}>★ Lasă recenzii</h2>
+          <div className="dash-review-list">
+            {completedJobs
+              .filter(j => j.acceptedByUserId && !reviewedIds.has(j.acceptedByUserId))
+              .map(job => (
+                <div key={job.id} className="dash-review-card card">
+                  <div>
+                    <Link to={`/jobs/${job.id}`} className="dash-review-job">{job.title}</Link>
+                    <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
+                      Prestator: <strong>{job.acceptedByUser?.name ?? `#${job.acceptedByUserId}`}</strong>
+                    </p>
+                  </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setReviewTarget({
+                      userId: job.acceptedByUserId!,
+                      userName: job.acceptedByUser?.name ?? 'Prestator'
+                    })}
+                  >
+                    ★ Recenzează
+                  </button>
+                </div>
+              ))}
+          </div>
+        </>
+      )}
+
+      {/* All jobs */}
+      <h2 className="section-title" style={{ marginTop: '1.5rem' }}>Toate joburile</h2>
       {jobs.length === 0 ? (
         <div className="empty-state">
           <h3>Niciun job postat încă</h3>
@@ -154,11 +307,14 @@ const EmployerDashboard: React.FC = () => {
                     <span>📅 {new Date(job.createdAt).toLocaleDateString('ro-RO')}</span>
                   </div>
                 </div>
-                {job.status === 'InProgress' && (
-                  <button className="btn btn-success btn-sm" onClick={() => completeJob(job.id)}>
-                    ✓ Marchează finalizat
-                  </button>
-                )}
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                  {job.status === 'InProgress' && (
+                    <button className="btn btn-success btn-sm" onClick={() => completeJob(job.id)}>
+                      ✓ Finalizează
+                    </button>
+                  )}
+                  <Link to={`/jobs/${job.id}`} className="btn btn-ghost btn-sm">Detalii</Link>
+                </div>
               </div>
 
               <div className="djc-apps">
@@ -197,27 +353,58 @@ const EmployerDashboard: React.FC = () => {
   );
 };
 
+// ─── WORKER DASHBOARD ──────────────────────────────────────────────────────────
+
 const WorkerDashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
+  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
   const { user } = useAuth();
 
-  useEffect(() => {
-    api.get<JobApplication[]>('/JobApplications')
-      .then(res => setApplications(res.data))
-      .catch(() => setError('Eroare la încărcarea aplicațiilor.'))
-      .finally(() => setLoading(false));
-  }, []);
+  const fetchData = async () => {
+    try {
+      const [appsRes, reviewedRes] = await Promise.all([
+        api.get<JobApplication[]>('/JobApplications'),
+        api.get<number[]>('/reviews/given').catch(() => ({ data: [] as number[] })),
+      ]);
+      setApplications(appsRes.data);
+      setReviewedIds(new Set(reviewedRes.data));
+    } catch {
+      setError('Eroare la încărcarea datelor.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { fetchData(); }, []);
+
+  const handleReviewSuccess = () => {
+    setReviewTarget(null);
+    setMsg({ text: 'Recenzie trimisă cu succes!', type: 'success' });
+    fetchData();
+  };
 
   if (loading) return <div className="loading-wrap">Se încarcă...</div>;
 
-  const pending  = applications.filter(a => a.jobApplicationStatus === 'Pending');
-  const accepted = applications.filter(a => a.jobApplicationStatus === 'Accepted');
-  const rejected = applications.filter(a => a.jobApplicationStatus === 'Rejected');
+  const pending   = applications.filter(a => a.jobApplicationStatus === 'Pending');
+  const accepted  = applications.filter(a => a.jobApplicationStatus === 'Accepted');
+  const activeJobs = accepted.filter(a => a.jobPost?.status === 'InProgress');
+  const completedJobs = accepted.filter(a => a.jobPost?.status === 'Completed');
 
   return (
     <div>
+      {reviewTarget && (
+        <ReviewModal
+          reviewedUserId={reviewTarget.userId}
+          reviewedUserName={reviewTarget.userName}
+          onClose={() => setReviewTarget(null)}
+          onSuccess={handleReviewSuccess}
+        />
+      )}
+
       <div className="dash-header">
         <div>
           <h1>Bun venit, {user?.name}! 👋</h1>
@@ -227,30 +414,48 @@ const WorkerDashboard: React.FC = () => {
       </div>
 
       {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
+      {msg && <div className={`alert alert-${msg.type}`} style={{ marginBottom: '1rem' }}>{msg.text}</div>}
 
       <div className="dash-stats">
-        <div className="stat-card"><div className="stat-num">{pending.length}</div><div className="stat-label">În așteptare</div></div>
-        <div className="stat-card"><div className="stat-num" style={{ color: 'var(--success)' }}>{accepted.length}</div><div className="stat-label">Acceptate</div></div>
-        <div className="stat-card"><div className="stat-num" style={{ color: 'var(--danger)' }}>{rejected.length}</div><div className="stat-label">Respinse</div></div>
-        <div className="stat-card"><div className="stat-num">{applications.length}</div><div className="stat-label">Total aplicații</div></div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--warning)' }}>{pending.length}</div>
+          <div className="stat-label">În așteptare</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--primary)' }}>{activeJobs.length}</div>
+          <div className="stat-label">În desfășurare</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num" style={{ color: 'var(--success)' }}>{completedJobs.length}</div>
+          <div className="stat-label">Finalizate</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-num">{applications.length}</div>
+          <div className="stat-label">Total aplicații</div>
+        </div>
       </div>
 
-      {accepted.length > 0 && (
+      {/* Active jobs */}
+      {activeJobs.length > 0 && (
         <>
-          <h2 className="section-title">✅ Joburi acceptate</h2>
+          <h2 className="section-title" style={{ marginTop: '1.5rem' }}>⚡ Joburi în desfășurare</h2>
           <div className="dash-apps-list accepted-list">
-            {accepted.map(app => (
+            {activeJobs.map(app => (
               <div key={app.id} className="app-card accepted">
                 <div className="app-card-header">
                   <Link to={`/jobs/${app.jobPostId}`} className="app-card-title">
                     {app.jobPost?.title ?? `Job #${app.jobPostId}`}
                   </Link>
-                  {appBadge(app.jobApplicationStatus)}
+                  {statusBadge(app.jobPost?.status ?? '')}
                 </div>
                 <div className="app-card-meta">
                   <span>💰 {app.jobPost?.budget} RON</span>
                   <span>📍 {app.jobPost?.location}</span>
-                  {statusBadge(app.jobPost?.status ?? '')}
+                </div>
+                <div style={{ marginTop: '0.75rem' }}>
+                  <Link to={`/jobs/${app.jobPostId}`} className="btn btn-primary btn-sm">
+                    Deschide job →
+                  </Link>
                 </div>
               </div>
             ))}
@@ -258,6 +463,45 @@ const WorkerDashboard: React.FC = () => {
         </>
       )}
 
+      {/* Completed jobs needing review */}
+      {completedJobs.some(a => {
+        const eId = a.jobPost?.userId;
+        return eId !== undefined && !reviewedIds.has(eId);
+      }) && (
+        <>
+          <h2 className="section-title" style={{ marginTop: '1.5rem' }}>★ Lasă recenzii</h2>
+          <div className="dash-review-list">
+            {completedJobs
+              .filter(a => {
+                const eId = a.jobPost?.userId;
+                return eId !== undefined && !reviewedIds.has(eId);
+              })
+              .map(app => (
+                <div key={app.id} className="dash-review-card card">
+                  <div>
+                    <Link to={`/jobs/${app.jobPostId}`} className="dash-review-job">
+                      {app.jobPost?.title ?? `Job #${app.jobPostId}`}
+                    </Link>
+                    <p className="text-muted" style={{ fontSize: '0.82rem', marginTop: '0.2rem' }}>
+                      Angajator: <strong>Utilizator #{app.jobPost?.userId}</strong>
+                    </p>
+                  </div>
+                  <button
+                    className="btn btn-outline btn-sm"
+                    onClick={() => setReviewTarget({
+                      userId: app.jobPost!.userId!,
+                      userName: 'Angajatorul'
+                    })}
+                  >
+                    ★ Recenzează
+                  </button>
+                </div>
+              ))}
+          </div>
+        </>
+      )}
+
+      {/* All applications */}
       <h2 className="section-title" style={{ marginTop: '1.5rem' }}>Toate aplicațiile mele</h2>
       {applications.length === 0 ? (
         <div className="empty-state">
@@ -278,6 +522,7 @@ const WorkerDashboard: React.FC = () => {
               <div className="app-card-meta">
                 <span>💰 {app.jobPost?.budget} RON</span>
                 <span>📍 {app.jobPost?.location}</span>
+                {app.jobPost?.status && statusBadge(app.jobPost.status)}
                 <span>📅 {new Date(app.createdAt).toLocaleDateString('ro-RO')}</span>
               </div>
               <p className="app-message">Mesajul tău: "{app.message}"</p>
@@ -288,6 +533,8 @@ const WorkerDashboard: React.FC = () => {
     </div>
   );
 };
+
+// ─── MAIN DASHBOARD ───────────────────────────────────────────────────────────
 
 const Dashboard: React.FC = () => {
   const { isEmployer } = useAuth();
