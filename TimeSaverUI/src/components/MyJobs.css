@@ -1,0 +1,76 @@
+.mj-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.mj-header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.2rem; }
+
+.mj-list { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.mj-card { padding: 1.5rem; }
+
+.mj-card-header { margin-bottom: 1rem; }
+
+.mj-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  flex-wrap: wrap;
+}
+.mj-title { font-size: 1.1rem; font-weight: 700; color: var(--text); text-decoration: none; }
+.mj-title:hover { color: var(--primary); }
+
+.mj-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.mj-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.mj-accepted-info {
+  font-size: 0.88rem;
+  color: var(--success);
+  background: var(--success-light);
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+.mj-accepted-info a { color: var(--success); font-weight: 700; }
+
+.mj-apps-section {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+.mj-apps-section h4 { font-size: 0.88rem; font-weight: 700; color: var(--text-muted); margin-bottom: 0.75rem; }
+
+.mj-apps-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+.mj-app-row {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--border);
+}
+.mj-app-row.accepted { border-left-color: var(--success); }
+.mj-app-row.rejected { border-left-color: var(--danger); }
+.mj-app-row.pending  { border-left-color: var(--warning); }
+
+.mj-app-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 0.3rem;
+}
+.mj-app-user a { color: var(--text); text-decoration: none; }
+.mj-app-user a:hover { color: var(--primary); }
+.mj-app-msg { font-size: 0.82rem; color: var(--text-muted); font-style: italic; margin-bottom: 0.5rem; }

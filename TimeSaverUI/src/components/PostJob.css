@@ -1,0 +1,25 @@
+.postjob-wrap {
+  max-width: 780px;
+  margin: 0 auto;
+}
+.postjob-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.25rem; }
+
+.postjob-form { padding: 2rem; }
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.form-row .form-group { min-width: 180px; }
+
+.postjob-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+@media (max-width: 600px) {
+  .form-row { flex-direction: column; }
+}

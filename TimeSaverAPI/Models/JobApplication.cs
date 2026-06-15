@@ -1,9 +1,11 @@
-﻿namespace TimeSaverAPI.Models
+using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TimeSaverAPI.Models
 {
     public enum JobApplicationStatus
     {
-        Pending, 
-        Accepted, 
+        Pending,
+        Accepted,
         Rejected
     }
 
@@ -11,7 +13,11 @@
     {
         public long Id { get; set; }
         public string Message { get; set; } = string.Empty;
-        public JobApplicationStatus JobApllicationStatus { get; set; }
+
+        // Column attribute preserves the existing DB column name (has a typo) while fixing the C# property name
+        [Column("JobApllicationStatus")]
+        public JobApplicationStatus JobApplicationStatus { get; set; }
+
         public DateTime CreatedAt { get; set; }
 
         public long JobPostId { get; set; }

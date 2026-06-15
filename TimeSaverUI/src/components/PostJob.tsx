@@ -1,128 +1,217 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import Navbar from './Navbar';
 import api from '../api/axiosConfig';
-import './Jobs.css';
+import type { JobCategory, CreateJobPostPayload } from '../types';
+import { CATEGORY_LABELS } from '../types';
+import './PostJob.css';
 
-interface JobPostFormState {
+interface FormState {
   title: string;
   description: string;
   budget: string;
+  category: JobCategory;
+  location: string;
+  deadline: string;
+  specialRequirements: string;
 }
 
 const PostJob: React.FC = () => {
   const navigate = useNavigate();
-  const [form, setForm] = useState<JobPostFormState>({
+  const [form, setForm] = useState<FormState>({
     title: '',
     description: '',
-    budget: ''
+    budget: '',
+    category: 'Other',
+    location: '',
+    deadline: '',
+    specialRequirements: '',
   });
-  const [imageUrlInput, setImageUrlInput] = useState<string>('');
-  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleAddImageUrl = () => {
-    if (imageUrlInput.trim()) {
-      setUploadedImages(prev => [...prev, imageUrlInput.trim()]);
-      setImageUrlInput('');
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    if (fieldErrors[e.target.name]) {
+      const next = { ...fieldErrors };
+      delete next[e.target.name];
+      setFieldErrors(next);
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
+    setFieldErrors({});
+    setStatus(null);
+    setLoading(true);
 
-    const rawPayload = {
+    const payload: CreateJobPostPayload = {
       title: form.title,
       description: form.description,
-      budget: parseFloat(form.budget) || 0.0,
-      category: 0,
-      location: "Unknown"
+      budget: parseFloat(form.budget),
+      category: form.category,
+      location: form.location,
     };
+    if (form.deadline)            payload.deadline = new Date(form.deadline).toISOString();
+    if (form.specialRequirements) payload.specialRequirements = form.specialRequirements;
 
     try {
-      const token = localStorage.getItem('token');
-      await api.post('/JobPosts', rawPayload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      alert('Job listed perfectly inside the SQL system!');
-      navigate('/look-jobs');
-    } catch (error) {
-      console.error(error);
-      alert('Failed to submit job payload structure.');
+      await api.post('/JobPosts', payload);
+      setStatus({ type: 'success', msg: 'Job postat cu succes! Te redirecționăm...' });
+      setTimeout(() => navigate('/my-jobs'), 1500);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { status?: number; data?: { errors?: Record<string, string[]>; message?: string } | string };
+      };
+      if (err.response?.status === 400) {
+        const data = err.response.data;
+        if (data && typeof data === 'object' && 'errors' in data && data.errors) {
+          setFieldErrors(data.errors);
+          setStatus({ type: 'error', msg: 'Corectează erorile de mai jos.' });
+        } else {
+          const msg = typeof data === 'string' ? data : (data as { message?: string })?.message ?? 'Date invalide.';
+          setStatus({ type: 'error', msg });
+        }
+      } else {
+        setStatus({ type: 'error', msg: 'Eroare server. Încearcă din nou.' });
+      }
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
     }
   };
 
+  const field = (name: string) => fieldErrors[name]?.[0];
+
   return (
-    <div className="page-container">
-      <Navbar />
-      <div className="content-wrap standard-flex-center">
-        <div className="form-card">
-          <h2>Post a Task</h2>
-          <form onSubmit={handleSubmit} className="job-form">
-            
-            <div className="input-group">
-              <label>Task Title</label>
-              <input 
-                type="text" 
-                required 
-                value={form.title} 
-                onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))} 
-                placeholder="e.g. Upgrade legacy API system" 
+    <div className="page-wrap">
+      <div className="postjob-wrap">
+        <h1 className="postjob-title">Postează un task</h1>
+        <p className="text-muted" style={{ marginBottom: '1.75rem' }}>
+          Descrie ce ai nevoie și primești oferte de la prestatori locali
+        </p>
+
+        {status && (
+          <div className={`alert alert-${status.type === 'success' ? 'success' : 'error'}`}>
+            {status.msg}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} className="card postjob-form">
+          <div className="form-row">
+            <div className="form-group" style={{ flex: 2 }}>
+              <label htmlFor="title">Titlul taskului *</label>
+              <input
+                id="title"
+                name="title"
+                type="text"
+                placeholder="ex: Reparație robinet bucătărie"
+                value={form.title}
+                onChange={handleChange}
+                className={field('Title') ? 'input-error' : ''}
+                required
+              />
+              {field('Title') && <span className="error-text">{field('Title')}</span>}
+            </div>
+
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="budget">Buget (RON) *</label>
+              <input
+                id="budget"
+                name="budget"
+                type="number"
+                min="1"
+                step="0.01"
+                placeholder="ex: 150"
+                value={form.budget}
+                onChange={handleChange}
+                className={field('Budget') ? 'input-error' : ''}
+                required
+              />
+              {field('Budget') && <span className="error-text">{field('Budget')}</span>}
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="category">Categorie *</label>
+              <select
+                id="category"
+                name="category"
+                value={form.category}
+                onChange={handleChange}
+              >
+                {(Object.entries(CATEGORY_LABELS) as [JobCategory, string][]).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="location">Locație *</label>
+              <input
+                id="location"
+                name="location"
+                type="text"
+                placeholder="ex: Cluj-Napoca"
+                value={form.location}
+                onChange={handleChange}
+                className={field('Location') ? 'input-error' : ''}
+                required
+              />
+              {field('Location') && <span className="error-text">{field('Location')}</span>}
+            </div>
+
+            <div className="form-group" style={{ flex: 1 }}>
+              <label htmlFor="deadline">Termen limită (opțional)</label>
+              <input
+                id="deadline"
+                name="deadline"
+                type="date"
+                value={form.deadline}
+                onChange={handleChange}
+                min={new Date().toISOString().split('T')[0]}
               />
             </div>
+          </div>
 
-            <div className="input-group">
-              <label>Budget Allocation (RON)</label>
-              <input 
-                type="number" 
-                step="1" 
-                required 
-                value={form.budget} 
-                onChange={(e) => setForm(prev => ({ ...prev, budget: e.target.value }))} 
-                placeholder="0.00" 
-              />
-            </div>
+          <div className="form-group">
+            <label htmlFor="description">Descriere detaliată *</label>
+            <textarea
+              id="description"
+              name="description"
+              rows={5}
+              placeholder="Descrie taskul în detaliu: ce trebuie făcut, când, condiții speciale..."
+              value={form.description}
+              onChange={handleChange}
+              className={field('Description') ? 'input-error' : ''}
+              required
+            />
+            {field('Description') && <span className="error-text">{field('Description')}</span>}
+          </div>
 
-            <div className="input-group">
-              <label>Requirements Description</label>
-              <textarea 
-                required 
-                rows={4} 
-                value={form.description} 
-                onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))} 
-                placeholder="Detail task expectations..." 
-              />
-            </div>
+          <div className="form-group">
+            <label htmlFor="specialRequirements">Cerințe speciale (opțional)</label>
+            <textarea
+              id="specialRequirements"
+              name="specialRequirements"
+              rows={2}
+              placeholder="ex: Experiență minimă 3 ani, certificare..."
+              value={form.specialRequirements}
+              onChange={handleChange}
+            />
+          </div>
 
-            <div className="input-group">
-              <label>Image References (Optional)</label>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <input 
-                  type="text" 
-                  value={imageUrlInput} 
-                  onChange={(e) => setImageUrlInput(e.target.value)} 
-                  placeholder="Paste image URL..." 
-                />
-                <button type="button" onClick={handleAddImageUrl} className="apply-btn" style={{ padding: '0.5rem' }}>
-                  Add
-                </button>
-              </div>
-              {uploadedImages.length > 0 && (
-                <ul style={{ fontSize: '0.85rem', color: '#555', marginTop: '0.5rem' }}>
-                  {uploadedImages.map((u, i) => <li key={i}>{u}</li>)}
-                </ul>
-              )}
-            </div>
-
-            <button type="submit" className="submit-job-btn" disabled={isSubmitting}>
-              {isSubmitting ? 'Syncing...' : 'Save and Open Post'}
+          <div className="postjob-actions">
+            <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)}>
+              Anulează
             </button>
-          </form>
-        </div>
+            <button type="submit" className="btn btn-primary" disabled={loading}>
+              {loading ? 'Se postează...' : '📢 Publică taskul'}
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

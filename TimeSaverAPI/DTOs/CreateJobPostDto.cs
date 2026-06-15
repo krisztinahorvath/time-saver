@@ -1,4 +1,4 @@
-﻿using TimeSaverAPI.Models;
+using TimeSaverAPI.Models;
 
 namespace TimeSaverAPI.DTOs
 {
@@ -9,5 +9,7 @@ namespace TimeSaverAPI.DTOs
         public required double Budget { get; set; }
         public required JobCategory? Category { get; set; }
         public required string Location { get; set; }
+        public DateTime? Deadline { get; set; }
+        public string? SpecialRequirements { get; set; }
     }
 }

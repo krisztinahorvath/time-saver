@@ -1,0 +1,136 @@
+.dash-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+.dash-header h1 { font-size: 1.6rem; font-weight: 800; margin-bottom: 0.25rem; }
+
+.dash-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  text-align: center;
+  box-shadow: var(--shadow);
+}
+.stat-num   { font-size: 2rem; font-weight: 800; color: var(--primary); }
+.stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+
+/* Employer job cards */
+.dash-jobs { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.dash-job-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.djc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+  flex-wrap: wrap;
+}
+
+.djc-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+.djc-title a { color: var(--text); text-decoration: none; }
+.djc-title a:hover { color: var(--primary); }
+
+.djc-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.djc-apps { padding: 1.25rem 1.5rem; }
+.djc-apps h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-muted); }
+
+.apps-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.app-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg);
+  flex-wrap: wrap;
+}
+
+.app-user {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  font-size: 0.88rem;
+  margin-bottom: 0.25rem;
+}
+.app-user a { color: var(--text); text-decoration: none; }
+.app-user a:hover { color: var(--primary); }
+.app-msg { font-size: 0.82rem; color: var(--text-muted); font-style: italic; }
+
+/* Worker app cards */
+.dash-apps-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.app-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1.5rem;
+  box-shadow: var(--shadow);
+  border-left: 4px solid var(--border);
+}
+.app-card.accepted { border-left-color: var(--success); }
+.app-card.rejected { border-left-color: var(--danger); }
+.app-card.pending  { border-left-color: var(--warning); }
+
+.app-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-wrap: wrap;
+}
+.app-card-title { font-size: 1rem; font-weight: 700; color: var(--text); text-decoration: none; }
+.app-card-title:hover { color: var(--primary); }
+
+.app-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 0.4rem;
+}
+
+.app-message {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  font-style: italic;
+}

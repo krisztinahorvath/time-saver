@@ -65,11 +65,17 @@ namespace TimeSaverAPI.Controllers
             if (jobPost.UserId == CurrentUserId)
                 return BadRequest("You cannot apply to your own job.");
 
+            // check for duplicate application
+            bool alreadyApplied = await _context.JobApplications
+                .AnyAsync(a => a.JobPostId == dto.JobPostId && a.UserId == CurrentUserId);
+            if (alreadyApplied)
+                return BadRequest("You have already applied to this job.");
+
             var jobApplication = new JobApplication
             {
                 Message = dto.Message,
                 JobPostId = dto.JobPostId,
-                JobApllicationStatus = JobApplicationStatus.Pending,
+                JobApplicationStatus = JobApplicationStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
                 UserId = CurrentUserId
             };
@@ -89,7 +95,7 @@ namespace TimeSaverAPI.Controllers
 
             if (jobApplication == null) return NotFound();
             if (jobApplication.UserId != CurrentUserId) return Forbid();
-            if (jobApplication.JobApllicationStatus != JobApplicationStatus.Pending)
+            if (jobApplication.JobApplicationStatus != JobApplicationStatus.Pending)
                 return BadRequest("You can only withdraw a Pending application.");
 
             _context.JobApplications.Remove(jobApplication);

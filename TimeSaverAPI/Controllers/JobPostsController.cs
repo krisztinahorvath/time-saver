@@ -92,9 +92,11 @@ namespace TimeSaverAPI.Controllers
                 Budget = dto.Budget,
                 Category = dto.Category!.Value,
                 Location = dto.Location,
+                Deadline = dto.Deadline,
+                SpecialRequirements = dto.SpecialRequirements,
                 Status = JobStatus.Open,
                 CreatedAt = DateTime.UtcNow,
-                UserId = CurrentUserId          // taken from JWT, not from client
+                UserId = CurrentUserId
             };
 
             _context.JobPosts.Add(jobPost);
@@ -122,7 +124,7 @@ namespace TimeSaverAPI.Controllers
             // accept the chosen one, reject the rest
             foreach (var app in jobPost.JobApplications)
             {
-                app.JobApllicationStatus = app.Id == dto.ApplicationId
+                app.JobApplicationStatus = app.Id == dto.ApplicationId
                     ? JobApplicationStatus.Accepted
                     : JobApplicationStatus.Rejected;
             }

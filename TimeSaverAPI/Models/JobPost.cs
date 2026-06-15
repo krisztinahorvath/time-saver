@@ -1,23 +1,32 @@
-﻿namespace TimeSaverAPI.Models
+namespace TimeSaverAPI.Models
 {
     public enum JobStatus
     {
-        Pending, 
-        Open, 
-        InProgress, 
-        Completed
+        Pending,
+        Open,
+        InProgress,
+        Completed,
+        Cancelled
     }
 
     public enum JobCategory
     {
-        Cleaning,
-        Delivery,
-        Tutoring,
-        Gardening,
-        Moving,
-        PetCare,
-        TechSupport,
-        Other
+        Cleaning = 0,
+        Delivery = 1,
+        Tutoring = 2,
+        Gardening = 3,
+        Moving = 4,
+        PetCare = 5,
+        TechSupport = 6,
+        Other = 7,
+        Repairs = 8,
+        Plumbing = 9,
+        Electrical = 10,
+        FurnitureAssembly = 11,
+        Design = 12,
+        Marketing = 13,
+        Babysitting = 14,
+        Events = 15
     }
 
     public class JobPost
@@ -30,17 +39,15 @@
         public JobCategory Category { get; set; }
         public required string Location { get; set; }
         public DateTime CreatedAt { get; set; }
+        public DateTime? Deadline { get; set; }
+        public string? SpecialRequirements { get; set; }
 
         public long UserId { get; set; }
         public virtual User User { get; set; } = null!;
         public long? AcceptedByUserId { get; set; }
         public virtual User? AcceptedByUser { get; set; }
 
-        // 1:n with JobPostImage
         public virtual ICollection<JobPostImage> Images { get; set; } = [];
-
-        // 1:n with JobApplication
         public virtual ICollection<JobApplication> JobApplications { get; set; } = [];
-
     }
 }

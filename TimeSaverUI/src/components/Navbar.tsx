@@ -1,48 +1,68 @@
-import React from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import React, { useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
+  const { user, isAuthenticated, logout, isEmployer, isWorker } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
-  const username: string = localStorage.getItem('username') || 'User';
+  const [menuOpen, setMenuOpen] = useState(false);
 
-  const handleLogout = (): void => {
-    localStorage.removeItem('token'); 
-    localStorage.removeItem('username');
-    navigate('/login'); 
-  };
+  const active = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(path + '/') ? 'nav-link active' : 'nav-link';
 
-  // Helper function to add an "active" class to the current page link
-  const isActive = (path: string): string => {
-    return location.pathname === path ? 'active' : '';
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
   return (
     <nav className="navbar">
-      <div className="navbar-logo">
-        <Link to="/home">TimeSaver<span>App</span></Link>
-      </div>
-      
-      <ul className="navbar-links">
-        <li>
-          <Link to="/home" className={isActive('/home')}>Dashboard</Link>
-        </li>
-        <li>
-          <Link to="/look-jobs" className={isActive('/look-jobs')}>Explore Jobs</Link>
-        </li> 
-        <li>
-          <Link to="/post-job" className={isActive('/post-job')}>Post a Job</Link>
-        </li>
-        <li>
-          <Link to="/my-jobs" className={isActive('/my-jobs')}>My Jobs</Link>
-        </li>
-      </ul>
+      <div className="navbar-inner">
+        <Link to={isAuthenticated ? '/dashboard' : '/'} className="navbar-logo">
+          ⏱ <span>TimeSaver</span>
+        </Link>
 
-      <div className="navbar-user">
-        <span className="welcome-text">Welcome, <strong>{username}</strong></span>
-        <button className="logout-btn" onClick={handleLogout}>Logout</button>
+        {isAuthenticated ? (
+          <>
+            <button
+              className="navbar-toggle"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Toggle menu"
+            >
+              ☰
+            </button>
+
+            <ul className={`navbar-links ${menuOpen ? 'open' : ''}`}>
+              <li><Link to="/dashboard"       className={active('/dashboard')}>Dashboard</Link></li>
+              <li><Link to="/explore"         className={active('/explore')}>Explorează</Link></li>
+              {isEmployer && (
+                <li><Link to="/post-job"      className={active('/post-job')}>Postează Job</Link></li>
+              )}
+              {isEmployer && (
+                <li><Link to="/my-jobs"       className={active('/my-jobs')}>Joburile mele</Link></li>
+              )}
+              {isWorker && (
+                <li><Link to="/my-applications" className={active('/my-applications')}>Aplicațiile mele</Link></li>
+              )}
+              <li><Link to="/profile"         className={active('/profile')}>Profil</Link></li>
+            </ul>
+
+            <div className="navbar-user">
+              <span className="navbar-name">{user?.name}</span>
+              <span className="navbar-role">{user?.userType === 'Worker' ? 'Prestator' : 'Angajator'}</span>
+              <button className="btn btn-ghost btn-sm" onClick={handleLogout}>
+                Deconectare
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="navbar-auth">
+            <Link to="/login"    className="btn btn-ghost btn-sm">Conectare</Link>
+            <Link to="/register" className="btn btn-primary btn-sm">Înregistrare</Link>
+          </div>
+        )}
       </div>
     </nav>
   );

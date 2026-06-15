@@ -1,72 +1,90 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
-import './Register.css'; 
+import { useAuth } from '../context/AuthContext';
+import type { LoginResponse } from '../types';
+import './Auth.css';
 
-const Login = () => {
-    const [credentials, setCredentials] = useState({ email: '', password: '' });
-    const [error, setError] = useState('');
-    const navigate = useNavigate();
+const Login: React.FC = () => {
+  const [credentials, setCredentials] = useState({ email: '', password: '' });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+  const { login } = useAuth();
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setCredentials({ ...credentials, [e.target.name]: e.target.value });
-    };
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCredentials({ ...credentials, [e.target.name]: e.target.value });
+  };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setError('');
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-        try {
-            const response = await api.post('/Users/Login', credentials);
+    try {
+      const response = await api.post<LoginResponse>('/Users/Login', credentials);
+      const { token, userId, name, userType } = response.data;
+      login(token, { userId, name, userType });
+      navigate('/dashboard');
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      setError(axiosErr.response?.data?.message || 'Email sau parolă incorecte.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-            const { token } = response.data;
-
-            localStorage.setItem('token', token);
-
-            navigate('/home');
-        } catch (err: any) {
-            setError(err.response?.data?.message || 'Invalid email or password.');
-        }
-    };
-
-    return (
-        <div className="register-container">
-            <div className="register-card">
-                <h2>TimeSaver Login</h2>
-                <form onSubmit={handleSubmit}>
-                    <div className="form-group">
-                        <label>Email</label>
-                        <input
-                            type="email"
-                            name="email"
-                            placeholder="Enter your email"
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-
-                    <div className="form-group">
-                        <label>Password</label>
-                        <input
-                            type="password"
-                            name="password"
-                            placeholder="••••••••"
-                            onChange={handleChange}
-                            required
-                        />
-                    </div>
-
-                    <button type="submit" className="register-button">Sign In</button>
-                </form>
-
-                {error && <div className="message error">{error}</div>}
-
-                <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.9rem' }}>
-                    Don't have an account? <Link to="/register">Register here</Link>
-                </p>
-            </div>
+  return (
+    <div className="auth-page">
+      <div className="auth-card">
+        <div className="auth-logo">
+          <Link to="/">⏱ TimeSaver</Link>
         </div>
-    );
+        <h2>Bun venit înapoi</h2>
+        <p className="auth-subtitle">Intră în contul tău</p>
+
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label htmlFor="email">Email</label>
+            <input
+              id="email"
+              type="email"
+              name="email"
+              placeholder="email@exemplu.com"
+              value={credentials.email}
+              onChange={handleChange}
+              required
+              autoComplete="email"
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="password">Parolă</label>
+            <input
+              id="password"
+              type="password"
+              name="password"
+              placeholder="••••••••"
+              value={credentials.password}
+              onChange={handleChange}
+              required
+              autoComplete="current-password"
+            />
+          </div>
+
+          {error && <div className="alert alert-error">{error}</div>}
+
+          <button type="submit" className="btn btn-primary btn-full" disabled={loading}>
+            {loading ? 'Se conectează...' : 'Conectare'}
+          </button>
+        </form>
+
+        <p className="auth-footer">
+          Nu ai cont? <Link to="/register">Înregistrează-te</Link>
+        </p>
+      </div>
+    </div>
+  );
 };
 
 export default Login;
