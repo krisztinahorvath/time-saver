@@ -3,6 +3,7 @@ using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
@@ -19,11 +20,16 @@ namespace TimeSaverAPI.Controllers
     {
         private readonly TimeSaverContext _context;
         private readonly JwtSettings _jwtSettings;
+        private readonly IPasswordHasher<User> _passwordHasher;
 
-        public UsersController(TimeSaverContext context, IOptions<JwtSettings> jwtSettings)
+        public UsersController(
+            TimeSaverContext context,
+            IOptions<JwtSettings> jwtSettings,
+            IPasswordHasher<User> passwordHasher)
         {
             _context = context;
             _jwtSettings = jwtSettings.Value;
+            _passwordHasher = passwordHasher;
         }
 
         private long CurrentUserId =>
@@ -35,21 +41,22 @@ namespace TimeSaverAPI.Controllers
         public async Task<IActionResult> Register(UserRegisterDTO dto)
         {
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
-                return BadRequest(new { message = "Email is already in use." });
+                return BadRequest(new { message = "Adresa de email este deja folosită." });
 
             var user = new User
             {
                 Name = dto.Name,
                 Email = dto.Email,
-                Password = HashPassword(dto.Password),
                 Bio = dto.Bio ?? string.Empty,
                 UserType = dto.UserType
             };
 
+            user.Password = _passwordHasher.HashPassword(user, dto.Password);
+
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Registration successful." });
+            return Ok(new { message = "Cont creat cu succes." });
         }
 
         // POST: api/Users/Login
@@ -58,10 +65,22 @@ namespace TimeSaverAPI.Controllers
         public async Task<IActionResult> Login(UserLoginDTO dto)
         {
             var user = await _context.Users
-                .FirstOrDefaultAsync(u => u.Email == dto.Email && u.Password == HashPassword(dto.Password));
+                .FirstOrDefaultAsync(u => u.Email == dto.Email);
 
             if (user == null)
-                return Unauthorized(new { message = "Invalid email or password." });
+                return Unauthorized(new { message = "Email sau parolă incorectă." });
+
+            var verifyResult = VerifyPassword(user, dto.Password);
+
+            if (verifyResult == PasswordVerificationResult.Failed)
+                return Unauthorized(new { message = "Email sau parolă incorectă." });
+
+            // Transparent upgrade: old SHA-256 hash → new PBKDF2 hash on next login
+            if (verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
+            {
+                user.Password = _passwordHasher.HashPassword(user, dto.Password);
+                await _context.SaveChangesAsync();
+            }
 
             string token = GenerateJwtToken(user);
 
@@ -108,10 +127,10 @@ namespace TimeSaverAPI.Controllers
             if (user == null) return NotFound();
 
             if (!string.IsNullOrWhiteSpace(dto.Name))
-                user.Name = dto.Name;
+                user.Name = dto.Name.Trim();
 
-            if (!string.IsNullOrWhiteSpace(dto.Bio))
-                user.Bio = dto.Bio;
+            if (dto.Bio != null)
+                user.Bio = dto.Bio.Trim();
 
             await _context.SaveChangesAsync();
 
@@ -134,7 +153,7 @@ namespace TimeSaverAPI.Controllers
                     .ThenInclude(r => r.ReviewerUser)
                 .FirstOrDefaultAsync(u => u.Id == id);
 
-            if (user == null) return NotFound();
+            if (user == null) return NotFound(new { message = "Utilizatorul nu a fost găsit." });
 
             double avgRating = user.ReceivedReviews != null && user.ReceivedReviews.Count > 0
                 ? Math.Round(user.ReceivedReviews.Average(r => r.Rating), 2)
@@ -193,6 +212,28 @@ namespace TimeSaverAPI.Controllers
             return NoContent();
         }
 
+        // ── Private helpers ──────────────────────────────────────────────────
+
+        private PasswordVerificationResult VerifyPassword(User user, string providedPassword)
+        {
+            // Try PBKDF2 format first (new registrations)
+            var result = _passwordHasher.VerifyHashedPassword(user, user.Password, providedPassword);
+            if (result != PasswordVerificationResult.Failed)
+                return result;
+
+            // Fallback: legacy SHA-256 (pre-Phase1 accounts)
+            if (user.Password == ComputeLegacySha256(providedPassword))
+                return PasswordVerificationResult.SuccessRehashNeeded;
+
+            return PasswordVerificationResult.Failed;
+        }
+
+        private static string ComputeLegacySha256(string password)
+        {
+            byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
+            return BitConverter.ToString(bytes).Replace("-", "").ToLower();
+        }
+
         private string GenerateJwtToken(User user)
         {
             var claims = new[]
@@ -210,12 +251,6 @@ namespace TimeSaverAPI.Controllers
                 signingCredentials: credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
-        }
-
-        private string HashPassword(string password)
-        {
-            byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(password));
-            return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
     }
 }

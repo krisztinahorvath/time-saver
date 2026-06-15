@@ -21,10 +21,14 @@ namespace TimeSaverAPI.Validators
                 .Matches("[A-Z]").WithMessage("Password must contain at least one upper character.")
                 .Matches("[0-9]").WithMessage("Password must contain at least one number.");
 
+            RuleFor(x => x.UserType)
+                .IsInEnum().WithMessage("Tip de cont invalid.")
+                .NotEqual(Models.UserType.Admin).WithMessage("Nu te poți înregistra ca Administrator.");
+
             RuleFor(x => x.Bio)
                 .NotEmpty()
                 .When(x => x.UserType == Models.UserType.Worker)
-                .WithMessage("Bio is required for workers.");
+                .WithMessage("Biografia este obligatorie pentru prestatori.");
         }
     }
 }

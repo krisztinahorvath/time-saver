@@ -1,14 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { extractApiError } from '../utils/apiError';
 import type { JobApplication } from '../types';
 import { STATUS_LABELS } from '../types';
+import ConfirmModal from './ConfirmModal';
 import './MyApplications.css';
 
 const MyApplications: React.FC = () => {
   const [apps, setApps] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
+  const [confirmPending, setConfirmPending] = useState<number | null>(null);
 
   const fetchApps = async () => {
     try {
@@ -24,13 +27,14 @@ const MyApplications: React.FC = () => {
   useEffect(() => { fetchApps(); }, []);
 
   const withdraw = async (appId: number) => {
-    if (!confirm('Retragi această aplicație?')) return;
     try {
       await api.delete(`/JobApplications/${appId}`);
-      setNotification({ msg: 'Aplicație retrasă.', type: 'success' });
+      setNotification({ msg: 'Aplicație retrasă cu succes.', type: 'success' });
       fetchApps();
-    } catch {
-      setNotification({ msg: 'Nu poți retrage o aplicație acceptată sau respinsă.', type: 'error' });
+    } catch (e) {
+      setNotification({ msg: extractApiError(e, 'Nu poți retrage această aplicație.'), type: 'error' });
+    } finally {
+      setConfirmPending(null);
     }
   };
 
@@ -42,6 +46,16 @@ const MyApplications: React.FC = () => {
 
   return (
     <div className="page-wrap">
+      {confirmPending !== null && (
+        <ConfirmModal
+          message="Retragi această aplicație? Nu o vei mai putea recupera."
+          confirmLabel="Retrage"
+          danger
+          onConfirm={() => withdraw(confirmPending)}
+          onCancel={() => setConfirmPending(null)}
+        />
+      )}
+
       <div className="ma-header">
         <div>
           <h1>Aplicațiile mele</h1>
@@ -76,7 +90,7 @@ const MyApplications: React.FC = () => {
               <h2 className="section-title">✅ Joburi acceptate</h2>
               <div className="ma-list">
                 {accepted.map(app => (
-                  <AppCard key={app.id} app={app} onWithdraw={withdraw} />
+                  <AppCard key={app.id} app={app} onWithdraw={id => setConfirmPending(id)} />
                 ))}
               </div>
             </div>
@@ -86,7 +100,7 @@ const MyApplications: React.FC = () => {
               <h2 className="section-title">⏳ În așteptare</h2>
               <div className="ma-list">
                 {pending.map(app => (
-                  <AppCard key={app.id} app={app} onWithdraw={withdraw} />
+                  <AppCard key={app.id} app={app} onWithdraw={id => setConfirmPending(id)} />
                 ))}
               </div>
             </div>
@@ -96,7 +110,7 @@ const MyApplications: React.FC = () => {
               <h2 className="section-title">❌ Respinse</h2>
               <div className="ma-list">
                 {rejected.map(app => (
-                  <AppCard key={app.id} app={app} onWithdraw={withdraw} />
+                  <AppCard key={app.id} app={app} onWithdraw={id => setConfirmPending(id)} />
                 ))}
               </div>
             </div>
@@ -127,7 +141,7 @@ const AppCard: React.FC<AppCardProps> = ({ app, onWithdraw }) => (
       {app.jobPost?.budget !== undefined && <span>💰 {app.jobPost.budget} RON</span>}
       {app.jobPost?.location && <span>📍 {app.jobPost.location}</span>}
       {app.jobPost?.status && (
-        <span className={`badge badge-${app.jobPost.status.toLowerCase().replace('inprogress', 'inprogress')}`}>
+        <span className={`badge badge-${app.jobPost.status.toLowerCase()}`}>
           {STATUS_LABELS[app.jobPost.status as keyof typeof STATUS_LABELS] ?? app.jobPost.status}
         </span>
       )}

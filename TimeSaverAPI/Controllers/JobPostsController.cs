@@ -114,12 +114,15 @@ namespace TimeSaverAPI.Controllers
                 .FirstOrDefaultAsync(j => j.Id == id);
 
             if (jobPost == null) return NotFound();
-            if (jobPost.UserId != CurrentUserId) return Forbid(); // only the poster
+            if (jobPost.UserId != CurrentUserId) return Forbid();
+
+            if (jobPost.Status != JobStatus.Open)
+                return BadRequest(new { message = "Poți accepta aplicații doar pentru joburi cu status Open." });
 
             var application = jobPost.JobApplications
                 .FirstOrDefault(a => a.Id == dto.ApplicationId);
 
-            if (application == null) return NotFound("Application not found.");
+            if (application == null) return NotFound(new { message = "Aplicația nu a fost găsită." });
 
             // accept the chosen one, reject the rest
             foreach (var app in jobPost.JobApplications)
@@ -134,6 +137,36 @@ namespace TimeSaverAPI.Controllers
 
             await _context.SaveChangesAsync();
             return NoContent();
+        }
+
+        // PUT: api/JobPosts/5/cancel
+        [HttpPut("{id}/cancel")]
+        public async Task<IActionResult> CancelJobPost(long id)
+        {
+            var jobPost = await _context.JobPosts
+                .Include(j => j.JobApplications)
+                .FirstOrDefaultAsync(j => j.Id == id);
+
+            if (jobPost == null) return NotFound();
+            if (jobPost.UserId != CurrentUserId) return Forbid();
+
+            if (jobPost.Status == JobStatus.Completed)
+                return BadRequest(new { message = "Un job finalizat nu poate fi anulat." });
+
+            if (jobPost.Status == JobStatus.Cancelled)
+                return BadRequest(new { message = "Jobul este deja anulat." });
+
+            // auto-reject all pending applications
+            foreach (var app in jobPost.JobApplications)
+            {
+                if (app.JobApplicationStatus == JobApplicationStatus.Pending)
+                    app.JobApplicationStatus = JobApplicationStatus.Rejected;
+            }
+
+            jobPost.Status = JobStatus.Cancelled;
+            await _context.SaveChangesAsync();
+
+            return Ok(new { message = "Jobul a fost anulat." });
         }
 
         // PUT: api/JobPosts/5/complete
@@ -167,7 +200,7 @@ namespace TimeSaverAPI.Controllers
             if (jobPost == null) return NotFound();
             if (jobPost.UserId != CurrentUserId) return Forbid();
             if (jobPost.Status != JobStatus.Open)
-                return BadRequest("Cannot delete a job that is already in progress.");
+                return BadRequest(new { message = "Doar joburile cu status Open pot fi șterse. Folosește Anulare pentru a opri un job activ." });
 
             _context.JobPosts.Remove(jobPost);
             await _context.SaveChangesAsync();

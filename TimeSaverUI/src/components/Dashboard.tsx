@@ -2,8 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosConfig';
+import { extractApiError } from '../utils/apiError';
 import type { JobPost, JobApplication } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS } from '../types';
+import ConfirmModal from './ConfirmModal';
 import './Dashboard.css';
 
 function statusBadge(status: string) {
@@ -12,13 +14,25 @@ function statusBadge(status: string) {
 }
 
 function appBadge(status: string) {
-  return <span className={`badge badge-${status.toLowerCase()}`}>{status === 'Accepted' ? 'Acceptat' : status === 'Rejected' ? 'Respins' : 'În așteptare'}</span>;
+  return (
+    <span className={`badge badge-${status.toLowerCase()}`}>
+      {status === 'Accepted' ? 'Acceptat' : status === 'Rejected' ? 'Respins' : 'În așteptare'}
+    </span>
+  );
+}
+
+interface ConfirmState {
+  message: string;
+  confirmLabel: string;
+  danger: boolean;
+  action: () => Promise<void>;
 }
 
 const EmployerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const { user } = useAuth();
 
   const fetchJobs = async () => {
@@ -26,7 +40,7 @@ const EmployerDashboard: React.FC = () => {
       const res = await api.get<JobPost[]>('/JobPosts/mine');
       setJobs(res.data);
     } catch {
-      setMsg('Eroare la încărcarea joburilor.');
+      setMsg({ text: 'Eroare la încărcarea joburilor.', type: 'error' });
     } finally {
       setLoading(false);
     }
@@ -34,28 +48,47 @@ const EmployerDashboard: React.FC = () => {
 
   useEffect(() => { fetchJobs(); }, []);
 
-  const acceptApp = async (jobId: number, appId: number) => {
-    if (!confirm('Accepți această aplicație? Celelalte vor fi respinse automat.')) return;
-    try {
-      await api.put(`/JobPosts/${jobId}/accept`, { applicationId: appId });
-      setMsg('Aplicație acceptată cu succes!');
-      await fetchJobs();
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: string | { message?: string } } };
-      const errData = err.response?.data;
-      setMsg(typeof errData === 'string' ? errData : errData?.message ?? 'Eroare la acceptare.');
-    }
+  const showConfirm = (message: string, action: () => Promise<void>, opts = { confirmLabel: 'Confirmă', danger: false }) => {
+    setConfirmState({ message, action, confirmLabel: opts.confirmLabel, danger: opts.danger });
   };
 
-  const completeJob = async (jobId: number) => {
-    if (!confirm('Marchezi jobul ca finalizat?')) return;
-    try {
-      await api.put(`/JobPosts/${jobId}/complete`);
-      setMsg('Job marcat ca finalizat!');
-      await fetchJobs();
-    } catch {
-      setMsg('Eroare la finalizare.');
-    }
+  const handleConfirm = async () => {
+    if (!confirmState) return;
+    const fn = confirmState.action;
+    setConfirmState(null);
+    await fn();
+  };
+
+  const acceptApp = (jobId: number, appId: number) => {
+    showConfirm(
+      'Accepți această aplicație? Celelalte vor fi respinse automat.',
+      async () => {
+        try {
+          await api.put(`/JobPosts/${jobId}/accept`, { applicationId: appId });
+          setMsg({ text: 'Aplicație acceptată cu succes!', type: 'success' });
+          await fetchJobs();
+        } catch (e) {
+          setMsg({ text: extractApiError(e, 'Eroare la acceptare.'), type: 'error' });
+        }
+      },
+      { confirmLabel: 'Acceptă', danger: false }
+    );
+  };
+
+  const completeJob = (jobId: number) => {
+    showConfirm(
+      'Marchezi jobul ca finalizat? Acțiunea nu poate fi anulată.',
+      async () => {
+        try {
+          await api.put(`/JobPosts/${jobId}/complete`);
+          setMsg({ text: 'Job marcat ca finalizat!', type: 'success' });
+          await fetchJobs();
+        } catch (e) {
+          setMsg({ text: extractApiError(e, 'Eroare la finalizare.'), type: 'error' });
+        }
+      },
+      { confirmLabel: 'Finalizează', danger: false }
+    );
   };
 
   if (loading) return <div className="loading-wrap">Se încarcă...</div>;
@@ -66,6 +99,16 @@ const EmployerDashboard: React.FC = () => {
 
   return (
     <div>
+      {confirmState && (
+        <ConfirmModal
+          message={confirmState.message}
+          confirmLabel={confirmState.confirmLabel}
+          danger={confirmState.danger}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
+
       <div className="dash-header">
         <div>
           <h1>Bun venit, {user?.name}! 👋</h1>
@@ -74,13 +117,17 @@ const EmployerDashboard: React.FC = () => {
         <Link to="/post-job" className="btn btn-primary">+ Postează job nou</Link>
       </div>
 
-      {msg && <div className={`alert ${msg.includes('succes') || msg.includes('finalizat') ? 'alert-success' : 'alert-error'}`}>{msg}</div>}
+      {msg && (
+        <div className={`alert alert-${msg.type}`} style={{ marginBottom: '1rem' }}>
+          {msg.text}
+        </div>
+      )}
 
       <div className="dash-stats">
         <div className="stat-card"><div className="stat-num">{openJobs.length}</div><div className="stat-label">Joburi active</div></div>
         <div className="stat-card"><div className="stat-num">{activeJobs.length}</div><div className="stat-label">În desfășurare</div></div>
         <div className="stat-card"><div className="stat-num">{completedJobs.length}</div><div className="stat-label">Finalizate</div></div>
-        <div className="stat-card"><div className="stat-num">{jobs.reduce((s,j) => s + (j.jobApplications?.length || 0), 0)}</div><div className="stat-label">Aplicații primite</div></div>
+        <div className="stat-card"><div className="stat-num">{jobs.reduce((s, j) => s + (j.jobApplications?.length || 0), 0)}</div><div className="stat-label">Aplicații primite</div></div>
       </div>
 
       <h2 className="section-title">Joburile mele</h2>
@@ -153,20 +200,21 @@ const EmployerDashboard: React.FC = () => {
 const WorkerDashboard: React.FC = () => {
   const [applications, setApplications] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
     api.get<JobApplication[]>('/JobApplications')
       .then(res => setApplications(res.data))
-      .catch(() => {})
+      .catch(() => setError('Eroare la încărcarea aplicațiilor.'))
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div className="loading-wrap">Se încarcă...</div>;
 
-  const pending   = applications.filter(a => a.jobApplicationStatus === 'Pending');
-  const accepted  = applications.filter(a => a.jobApplicationStatus === 'Accepted');
-  const rejected  = applications.filter(a => a.jobApplicationStatus === 'Rejected');
+  const pending  = applications.filter(a => a.jobApplicationStatus === 'Pending');
+  const accepted = applications.filter(a => a.jobApplicationStatus === 'Accepted');
+  const rejected = applications.filter(a => a.jobApplicationStatus === 'Rejected');
 
   return (
     <div>
@@ -177,6 +225,8 @@ const WorkerDashboard: React.FC = () => {
         </div>
         <Link to="/explore" className="btn btn-primary">Explorează joburi</Link>
       </div>
+
+      {error && <div className="alert alert-error" style={{ marginBottom: '1rem' }}>{error}</div>}
 
       <div className="dash-stats">
         <div className="stat-card"><div className="stat-num">{pending.length}</div><div className="stat-label">În așteptare</div></div>

@@ -25,7 +25,9 @@ const Login: React.FC = () => {
       const response = await api.post<LoginResponse>('/Users/Login', credentials);
       const { token, userId, name, userType } = response.data;
       login(token, { userId, name, userType });
-      navigate('/dashboard');
+      const redirect = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
+      sessionStorage.removeItem('redirectAfterLogin');
+      navigate(redirect);
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { message?: string } } };
       setError(axiosErr.response?.data?.message || 'Email sau parolă incorecte.');

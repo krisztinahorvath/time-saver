@@ -1,10 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { extractApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import type { JobPost } from '../types';
 import { CATEGORY_LABELS, STATUS_LABELS } from '../types';
+import ConfirmModal from './ConfirmModal';
 import './JobDetails.css';
+
+interface ConfirmState {
+  message: string;
+  confirmLabel: string;
+  danger: boolean;
+  action: () => Promise<void>;
+}
 
 const JobDetails: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,7 +24,8 @@ const JobDetails: React.FC = () => {
   const [applyMsg, setApplyMsg] = useState('');
   const [applyStatus, setApplyStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [applying, setApplying] = useState(false);
-  const [notification, setNotification] = useState('');
+  const [notification, setNotification] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
 
   const fetchJob = async () => {
     try {
@@ -30,13 +40,24 @@ const JobDetails: React.FC = () => {
 
   useEffect(() => { fetchJob(); }, [id]);
 
-  const isOwner   = job?.userId === user?.userId;
-  const isWorker  = job?.acceptedByUserId === user?.userId;
-  const applied   = job?.jobApplications?.some(a => a.userId === user?.userId) ?? false;
+  const isOwner  = job?.userId === user?.userId;
+  const isWorker = job?.acceptedByUserId === user?.userId;
+  const applied  = job?.jobApplications?.some(a => a.userId === user?.userId) ?? false;
+
+  const showConfirm = (message: string, action: () => Promise<void>, opts = { confirmLabel: 'Confirmă', danger: false }) => {
+    setConfirmState({ message, action, confirmLabel: opts.confirmLabel, danger: opts.danger });
+  };
+
+  const handleConfirm = async () => {
+    if (!confirmState) return;
+    const fn = confirmState.action;
+    setConfirmState(null);
+    await fn();
+  };
 
   const handleApply = async () => {
     if (!applyMsg.trim()) {
-      setApplyStatus({ type: 'error', msg: 'Scrie un mesaj de aplicare.' });
+      setApplyStatus({ type: 'error', msg: 'Scrie un mesaj de aplicare (min. 10 caractere).' });
       return;
     }
     setApplying(true);
@@ -45,56 +66,104 @@ const JobDetails: React.FC = () => {
       setApplyStatus({ type: 'success', msg: 'Aplicație trimisă cu succes!' });
       setApplyMsg('');
       fetchJob();
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: string | { message?: string } } };
-      const errData = err.response?.data;
-      const msg = typeof errData === 'string' ? errData : errData?.message ?? 'Eroare la aplicare.';
-      setApplyStatus({ type: 'error', msg });
+    } catch (e) {
+      setApplyStatus({ type: 'error', msg: extractApiError(e, 'Eroare la aplicare.') });
     } finally {
       setApplying(false);
     }
   };
 
-  const acceptApp = async (appId: number) => {
-    if (!confirm('Accepți această aplicație?')) return;
-    try {
-      await api.put(`/JobPosts/${id}/accept`, { applicationId: appId });
-      setNotification('Aplicație acceptată!');
-      fetchJob();
-    } catch { setNotification('Eroare la acceptare.'); }
+  const acceptApp = (appId: number) => {
+    showConfirm(
+      'Accepți această aplicație? Celelalte vor fi respinse automat.',
+      async () => {
+        try {
+          await api.put(`/JobPosts/${id}/accept`, { applicationId: appId });
+          setNotification({ type: 'success', msg: 'Aplicație acceptată!' });
+          fetchJob();
+        } catch (e) {
+          setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la acceptare.') });
+        }
+      },
+      { confirmLabel: 'Acceptă', danger: false }
+    );
   };
 
-  const completeJob = async () => {
-    if (!confirm('Marchezi jobul ca finalizat?')) return;
-    try {
-      await api.put(`/JobPosts/${id}/complete`);
-      setNotification('Job finalizat!');
-      fetchJob();
-    } catch { setNotification('Eroare la finalizare.'); }
+  const completeJob = () => {
+    showConfirm(
+      'Marchezi jobul ca finalizat? Acțiunea nu poate fi anulată.',
+      async () => {
+        try {
+          await api.put(`/JobPosts/${id}/complete`);
+          setNotification({ type: 'success', msg: 'Job finalizat!' });
+          fetchJob();
+        } catch (e) {
+          setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la finalizare.') });
+        }
+      },
+      { confirmLabel: 'Finalizează', danger: false }
+    );
   };
 
-  const deleteJob = async () => {
-    if (!confirm('Ștergi acest job? Acțiunea este ireversibilă.')) return;
-    try {
-      await api.delete(`/JobPosts/${id}`);
-      navigate('/my-jobs');
-    } catch { setNotification('Eroare la ștergere.'); }
+  const cancelJob = () => {
+    showConfirm(
+      'Anulezi acest job? Aplicațiile în așteptare vor fi respinse automat.',
+      async () => {
+        try {
+          await api.put(`/JobPosts/${id}/cancel`);
+          setNotification({ type: 'success', msg: 'Jobul a fost anulat.' });
+          fetchJob();
+        } catch (e) {
+          setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la anulare.') });
+        }
+      },
+      { confirmLabel: 'Anulează jobul', danger: true }
+    );
+  };
+
+  const deleteJob = () => {
+    showConfirm(
+      'Ștergi definitiv acest job? Acțiunea este ireversibilă.',
+      async () => {
+        try {
+          await api.delete(`/JobPosts/${id}`);
+          navigate('/my-jobs');
+        } catch (e) {
+          setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la ștergere.') });
+        }
+      },
+      { confirmLabel: 'Șterge', danger: true }
+    );
   };
 
   if (loading) return <div className="loading-wrap">Se încarcă...</div>;
-  if (!job)    return (
+  if (!job) return (
     <div className="page-wrap">
-      <div className="empty-state"><h3>Job negăsit</h3><p>Jobul nu există sau nu ai acces.</p><Link to="/explore">← Înapoi la explorare</Link></div>
+      <div className="empty-state">
+        <h3>Job negăsit</h3>
+        <p>Jobul nu există sau nu ai acces.</p>
+        <Link to="/explore" className="btn btn-outline" style={{ marginTop: '1rem' }}>← Înapoi la explorare</Link>
+      </div>
     </div>
   );
 
   return (
     <div className="page-wrap">
+      {confirmState && (
+        <ConfirmModal
+          message={confirmState.message}
+          confirmLabel={confirmState.confirmLabel}
+          danger={confirmState.danger}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmState(null)}
+        />
+      )}
+
       <Link to="/explore" className="back-link">← Înapoi la explorare</Link>
 
       {notification && (
-        <div className={`alert ${notification.includes('Eroare') ? 'alert-error' : 'alert-success'}`} style={{ marginBottom: '1rem' }}>
-          {notification}
+        <div className={`alert alert-${notification.type}`} style={{ margin: '1rem 0' }}>
+          {notification.msg}
         </div>
       )}
 
@@ -148,13 +217,16 @@ const JobDetails: React.FC = () => {
                 {job.status === 'InProgress' && (
                   <button className="btn btn-success" onClick={completeJob}>✓ Marchează finalizat</button>
                 )}
+                {(job.status === 'Open' || job.status === 'InProgress') && (
+                  <button className="btn btn-outline" onClick={cancelJob}>✕ Anulează job</button>
+                )}
                 {job.status === 'Open' && (
                   <button className="btn btn-danger btn-sm" onClick={deleteJob}>🗑 Șterge job</button>
                 )}
               </div>
             )}
 
-            {/* Worker complete */}
+            {/* Worker: mark complete */}
             {isWorker && job.status === 'InProgress' && !isOwner && (
               <div className="jd-owner-actions">
                 <button className="btn btn-success" onClick={completeJob}>✓ Marchează finalizat</button>
@@ -162,7 +234,7 @@ const JobDetails: React.FC = () => {
             )}
           </div>
 
-          {/* Apply section — only for workers, non-owners, on open jobs */}
+          {/* Apply section */}
           {!isOwner && job.status === 'Open' && (
             <div className="card jd-apply-card">
               <h3>Aplică la acest job</h3>
@@ -174,7 +246,7 @@ const JobDetails: React.FC = () => {
                     <div className={`alert alert-${applyStatus.type}`}>{applyStatus.msg}</div>
                   )}
                   <div className="form-group">
-                    <label>Mesajul tău *</label>
+                    <label>Mesajul tău * <span className="text-muted" style={{ fontSize: '0.82rem' }}>(min. 10 caractere)</span></label>
                     <textarea
                       rows={4}
                       placeholder="Descrie de ce ești potrivit pentru acest task, experiența ta relevantă..."
@@ -213,7 +285,7 @@ const JobDetails: React.FC = () => {
             </div>
           )}
 
-          {/* Applications (visible to owner) */}
+          {/* Applications list (owner only) */}
           {isOwner && job.jobApplications && job.jobApplications.length > 0 && (
             <div className="card">
               <h3>Aplicații ({job.jobApplications.length})</h3>

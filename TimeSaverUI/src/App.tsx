@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import './App.css';
 
@@ -14,12 +14,21 @@ import MyJobs         from './components/MyJobs';
 import MyApplications from './components/MyApplications';
 import Profile        from './components/Profile';
 import PublicProfile  from './components/PublicProfile';
+import NotFound       from './components/NotFound';
 
+// Redirects to /login and saves the intended path so Login can restore it.
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    sessionStorage.setItem('redirectAfterLogin', location.pathname);
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
 };
 
+// Redirects already-authenticated users away from login/register pages.
 const AuthRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
   return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
@@ -69,7 +78,7 @@ function App() {
       <Route path="/look-jobs" element={<Navigate to="/explore"   replace />} />
 
       {/* 404 */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

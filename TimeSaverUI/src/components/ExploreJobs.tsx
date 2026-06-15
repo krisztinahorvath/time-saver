@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
+import { extractApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import type { JobPost, JobCategory } from '../types';
 import { CATEGORY_LABELS, STATUS_LABELS } from '../types';
@@ -10,6 +11,7 @@ const ExploreJobs: React.FC = () => {
   const { user } = useAuth();
   const [jobs, setJobs] = useState<JobPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [myAppIds, setMyAppIds] = useState<Set<number>>(new Set());
   const [applyMsg, setApplyMsg] = useState<Record<number, string>>({});
   const [applyLoading, setApplyLoading] = useState<Record<number, boolean>>({});
@@ -25,6 +27,7 @@ const ExploreJobs: React.FC = () => {
 
   const fetchData = useCallback(async () => {
     setLoading(true);
+    setFetchError(null);
     try {
       const params: Record<string, string> = {};
       if (category)  params.category  = category;
@@ -39,7 +42,7 @@ const ExploreJobs: React.FC = () => {
       setJobs(jobsRes.data);
       setMyAppIds(new Set(appsRes.data.map(a => a.jobPostId)));
     } catch {
-      // silently handle
+      setFetchError('Nu am putut încărca joburile. Verifică conexiunea și încearcă din nou.');
     } finally {
       setLoading(false);
     }
@@ -61,8 +64,8 @@ const ExploreJobs: React.FC = () => {
 
   const handleApply = async (jobId: number) => {
     const msg = applyMsg[jobId]?.trim();
-    if (!msg) {
-      setNotification({ jobId, msg: 'Scrie un mesaj de aplicare.', type: 'error' });
+    if (!msg || msg.length < 10) {
+      setNotification({ jobId, msg: 'Mesajul trebuie să aibă cel puțin 10 caractere.', type: 'error' });
       return;
     }
     setApplyLoading(prev => ({ ...prev, [jobId]: true }));
@@ -71,11 +74,8 @@ const ExploreJobs: React.FC = () => {
       setMyAppIds(prev => new Set([...prev, jobId]));
       setApplyMsg(prev => ({ ...prev, [jobId]: '' }));
       setNotification({ jobId, msg: 'Aplicație trimisă cu succes!', type: 'success' });
-    } catch (e: unknown) {
-      const err = e as { response?: { data?: string | { message?: string } } };
-      const errData = err.response?.data;
-      const errMsg = typeof errData === 'string' ? errData : errData?.message ?? 'Eroare la aplicare.';
-      setNotification({ jobId, msg: errMsg, type: 'error' });
+    } catch (e) {
+      setNotification({ jobId, msg: extractApiError(e, 'Eroare la aplicare.'), type: 'error' });
     } finally {
       setApplyLoading(prev => ({ ...prev, [jobId]: false }));
     }
@@ -148,12 +148,32 @@ const ExploreJobs: React.FC = () => {
         </div>
       </div>
 
-      {loading ? (
+      {fetchError ? (
+        <div className="alert alert-error" style={{ marginTop: '1rem' }}>
+          {fetchError}
+          <button
+            className="btn btn-outline btn-sm"
+            onClick={fetchData}
+            style={{ marginLeft: '1rem' }}
+          >
+            Reîncearcă
+          </button>
+        </div>
+      ) : loading ? (
         <div className="loading-wrap">Se încarcă joburile...</div>
       ) : filtered.length === 0 ? (
         <div className="empty-state">
           <h3>Niciun job găsit</h3>
           <p>Încearcă să modifici filtrele sau revino mai târziu.</p>
+          {(search || category || location || minBudget || maxBudget) && (
+            <button
+              className="btn btn-outline"
+              style={{ marginTop: '1rem' }}
+              onClick={() => { setSearch(''); setCategory(''); setLocation(''); setMinBudget(''); setMaxBudget(''); }}
+            >
+              Resetează filtrele
+            </button>
+          )}
         </div>
       ) : (
         <>
@@ -170,7 +190,7 @@ const ExploreJobs: React.FC = () => {
                 <div key={job.id} className="job-card card">
                   <div className="jc-top">
                     <div className="jc-category">{CATEGORY_LABELS[job.category] ?? job.category}</div>
-                    <span className={`badge badge-${job.status.toLowerCase().replace('inprogress', 'inprogress')}`}>
+                    <span className={`badge badge-${job.status.toLowerCase()}`}>
                       {STATUS_LABELS[job.status] ?? job.status}
                     </span>
                   </div>
@@ -206,7 +226,7 @@ const ExploreJobs: React.FC = () => {
                       ) : (
                         <>
                           <textarea
-                            placeholder="Mesajul tău de aplicare..."
+                            placeholder="Mesajul tău de aplicare (min. 10 caractere)..."
                             rows={2}
                             value={applyMsg[job.id] ?? ''}
                             onChange={e => setApplyMsg(prev => ({ ...prev, [job.id]: e.target.value }))}

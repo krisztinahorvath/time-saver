@@ -19,6 +19,10 @@ namespace TimeSaverAPI.Data
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<User>()
+                .HasIndex(u => u.Email)
+                .IsUnique();
+
             // users and reviews
             modelBuilder.Entity<Review>()
                 .HasOne(r => r.ReviewerUser)
