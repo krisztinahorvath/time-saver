@@ -1,17 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 using TimeSaverAPI.Data;
+using TimeSaverAPI.DTOs;
 using TimeSaverAPI.Models;
 
 namespace TimeSaverAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api")]
     [ApiController]
+    [Authorize]
     public class ReviewsController : ControllerBase
     {
         private readonly TimeSaverContext _context;
@@ -21,88 +20,73 @@ namespace TimeSaverAPI.Controllers
             _context = context;
         }
 
-        // GET: api/Reviews
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Review>>> GetReviews()
+        private long CurrentUserId =>
+            long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
+
+        // POST: api/users/{id}/review
+        [HttpPost("users/{id}/review")]
+        public async Task<ActionResult<Review>> PostReview(long id, CreateReviewDto dto)
         {
-            return await _context.Reviews.ToListAsync();
-        }
+            if (id == CurrentUserId)
+                return BadRequest("You cannot review yourself.");
 
-        // GET: api/Reviews/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Review>> GetReview(long id)
-        {
-            var review = await _context.Reviews.FindAsync(id);
+            var reviewedUserExists = await _context.Users.AnyAsync(u => u.Id == id);
+            if (!reviewedUserExists) return NotFound("User not found.");
 
-            if (review == null)
+            // must have completed at least one job together, in either direction
+            bool workedTogether = await _context.JobPosts.AnyAsync(j =>
+                j.Status == JobStatus.Completed &&
+                ((j.UserId == CurrentUserId && j.AcceptedByUserId == id) ||
+                 (j.UserId == id && j.AcceptedByUserId == CurrentUserId)));
+
+            if (!workedTogether)
+                return BadRequest("You can only review users you have completed a job with.");
+
+            bool alreadyReviewed = await _context.Reviews.AnyAsync(r =>
+                r.ReviewerUserId == CurrentUserId && r.ReviewedUserId == id);
+
+            if (alreadyReviewed)
+                return BadRequest("You have already reviewed this user.");
+
+            var review = new Review
             {
-                return NotFound();
-            }
+                ReviewerUserId = CurrentUserId,
+                ReviewedUserId = id,
+                Rating = dto.Rating,
+                Comment = dto.Comment,
+                CreatedAt = DateTime.UtcNow
+            };
 
-            return review;
-        }
-
-        // PUT: api/Reviews/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutReview(long id, Review review)
-        {
-            if (id != review.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(review).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!ReviewExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        // POST: api/Reviews
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<Review>> PostReview(Review review)
-        {
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetReview", new { id = review.Id }, review);
+            return CreatedAtAction(nameof(GetUserReviews), new { id = review.ReviewedUserId }, review);
         }
 
-        // DELETE: api/Reviews/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteReview(long id)
+        // GET: api/users/{id}/reviews
+        [AllowAnonymous]
+        [HttpGet("users/{id}/reviews")]
+        public async Task<ActionResult> GetUserReviews(long id)
         {
-            var review = await _context.Reviews.FindAsync(id);
-            if (review == null)
+            var userExists = await _context.Users.AnyAsync(u => u.Id == id);
+            if (!userExists) return NotFound("User not found.");
+
+            var reviews = await _context.Reviews
+                .Where(r => r.ReviewedUserId == id)
+                .Include(r => r.ReviewerUser)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            double averageRating = reviews.Count > 0
+                ? reviews.Average(r => r.Rating)
+                : 0;
+
+            return Ok(new
             {
-                return NotFound();
-            }
-
-            _context.Reviews.Remove(review);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool ReviewExists(long id)
-        {
-            return _context.Reviews.Any(e => e.Id == id);
+                AverageRating = Math.Round(averageRating, 2),
+                ReviewCount = reviews.Count,
+                Reviews = reviews
+            });
         }
     }
 }

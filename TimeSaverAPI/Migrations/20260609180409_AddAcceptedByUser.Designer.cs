@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TimeSaverAPI.Data;
 
@@ -11,9 +12,11 @@ using TimeSaverAPI.Data;
 namespace TimeSaverAPI.Migrations
 {
     [DbContext(typeof(TimeSaverContext))]
-    partial class TimeSaverContextModelSnapshot : ModelSnapshot
+    [Migration("20260609180409_AddAcceptedByUser")]
+    partial class AddAcceptedByUser
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -69,17 +72,10 @@ namespace TimeSaverAPI.Migrations
                     b.Property<double>("Budget")
                         .HasColumnType("float");
 
-                    b.Property<int>("Category")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Location")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
