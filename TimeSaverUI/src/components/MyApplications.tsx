@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
-import { useAuth } from '../context/AuthContext';
 import type { JobApplication } from '../types';
 import { STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
@@ -15,7 +14,6 @@ interface ReviewTarget {
 }
 
 const MyApplications: React.FC = () => {
-  const { user } = useAuth();
   const [apps, setApps] = useState<JobApplication[]>([]);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
@@ -130,7 +128,6 @@ const MyApplications: React.FC = () => {
                   <AppCard
                     key={app.id}
                     app={app}
-                    currentUserId={user?.userId}
                     reviewedIds={reviewedIds}
                     onWithdraw={id => setConfirmPending(id)}
                     onReview={setReviewTarget}
@@ -147,7 +144,6 @@ const MyApplications: React.FC = () => {
                   <AppCard
                     key={app.id}
                     app={app}
-                    currentUserId={user?.userId}
                     reviewedIds={reviewedIds}
                     onWithdraw={id => setConfirmPending(id)}
                     onReview={setReviewTarget}
@@ -164,7 +160,6 @@ const MyApplications: React.FC = () => {
                   <AppCard
                     key={app.id}
                     app={app}
-                    currentUserId={user?.userId}
                     reviewedIds={reviewedIds}
                     onWithdraw={id => setConfirmPending(id)}
                     onReview={setReviewTarget}
@@ -181,7 +176,6 @@ const MyApplications: React.FC = () => {
 
 interface AppCardProps {
   app: JobApplication;
-  currentUserId?: number;
   reviewedIds: Set<number>;
   onWithdraw: (id: number) => void;
   onReview: (target: ReviewTarget) => void;

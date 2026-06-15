@@ -37,15 +37,15 @@ const Navbar: React.FC = () => {
 
             <ul className={`navbar-links ${menuOpen ? 'open' : ''}`}>
               <li><Link to="/dashboard"       className={active('/dashboard')}>Dashboard</Link></li>
-              <li><Link to="/explore"         className={active('/explore')}>Exploreaza</Link></li>
+              <li><Link to="/explore"         className={active('/explore')}>Explorează</Link></li>
               {isEmployer && (
-                <li><Link to="/post-job"      className={active('/post-job')}>Posteaza Job</Link></li>
+                <li><Link to="/post-job"      className={active('/post-job')}>Postează Job</Link></li>
               )}
               {isEmployer && (
                 <li><Link to="/my-jobs"       className={active('/my-jobs')}>Joburile mele</Link></li>
               )}
               {isWorker && (
-                <li><Link to="/my-applications" className={active('/my-applications')}>Aplicatiile mele</Link></li>
+                <li><Link to="/my-applications" className={active('/my-applications')}>Aplicațiile mele</Link></li>
               )}
               <li><Link to="/profile"         className={active('/profile')}>Profil</Link></li>
             </ul>
@@ -62,7 +62,7 @@ const Navbar: React.FC = () => {
         ) : (
           <div className="navbar-auth">
             <Link to="/login"    className="btn btn-ghost btn-sm">Conectare</Link>
-            <Link to="/register" className="btn btn-primary btn-sm">Inregistrare</Link>
+            <Link to="/register" className="btn btn-primary btn-sm">Înregistrare</Link>
           </div>
         )}
       </div>

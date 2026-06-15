@@ -38,6 +38,7 @@ const NotificationsPage: React.FC = () => {
         ...prev,
         items: prev.items.map(n => n.id === id ? { ...n, isRead: true } : n),
       } : prev);
+      window.dispatchEvent(new Event('notifications-read'));
     } catch { /* non-blocking */ }
   };
 
@@ -48,6 +49,7 @@ const NotificationsPage: React.FC = () => {
         ...prev,
         items: prev.items.map(n => ({ ...n, isRead: true })),
       } : prev);
+      window.dispatchEvent(new Event('notifications-read'));
     } catch { /* non-blocking */ }
   };
 
@@ -65,31 +67,31 @@ const NotificationsPage: React.FC = () => {
     <div className="page-wrap">
       <div className="notif-header">
         <div>
-          <h1>Notificari</h1>
-          <p className="text-muted">Activitatea recenta pe platforma</p>
+          <h1>Notificări</h1>
+          <p className="text-muted">Activitatea recentă pe platformă</p>
         </div>
         {hasUnread && (
           <button className="btn btn-outline btn-sm" onClick={markAllRead}>
-            Marcheaza toate ca citite
+            Marchează toate ca citite
           </button>
         )}
       </div>
 
       {loading ? (
-        <div className="loading-wrap">Se incarca...</div>
+        <div className="loading-wrap">Se încarcă...</div>
       ) : error ? (
         <div className="alert alert-error">
-          Nu am putut incarca notificarile.
+          Nu am putut încărca notificările.
           <button className="btn btn-outline btn-sm" onClick={() => fetchPage(page)} style={{ marginLeft: '1rem' }}>
-            Reincearca
+            Reîncearcă
           </button>
         </div>
       ) : notifications.length === 0 ? (
         <div className="empty-state">
           <h3>Nicio notificare</h3>
-          <p>Vei fi notificat cand se intampla ceva important.</p>
+          <p>Vei fi notificat când se întâmplă ceva important.</p>
           <Link to="/explore" className="btn btn-outline" style={{ marginTop: '1rem' }}>
-            Exploreaza joburi
+            Explorează joburi
           </Link>
         </div>
       ) : (
@@ -140,7 +142,7 @@ const NotificationsPage: React.FC = () => {
                 disabled={page <= 1}
                 onClick={() => fetchPage(page - 1)}
               >
-                Anterioara
+                Anterioară
               </button>
               <span style={{ padding: '0 1rem', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
                 {page} / {totalPages}
@@ -150,7 +152,7 @@ const NotificationsPage: React.FC = () => {
                 disabled={page >= totalPages}
                 onClick={() => fetchPage(page + 1)}
               >
-                Urmatoare
+                Următoare
               </button>
             </div>
           )}
