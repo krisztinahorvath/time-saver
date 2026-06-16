@@ -5,6 +5,7 @@ import { extractApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import type { JobPostListItem, JobCategory, PagedResult } from '../types';
 import { CATEGORY_LABELS, CATEGORY_ICONS, STATUS_LABELS } from '../types';
+import JobMap from './JobMap';
 import './ExploreJobs.css';
 
 const PAGE_SIZE = 12;
@@ -18,7 +19,7 @@ const SORT_LABELS: Record<SortBy, string> = {
 };
 
 function renderStars(rating: number) {
-  const full  = Math.round(rating);
+  const full = Math.round(rating);
   return '★'.repeat(full) + '☆'.repeat(5 - full);
 }
 
@@ -26,7 +27,6 @@ const ExploreJobs: React.FC = () => {
   const { user }            = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Filter state — initialised from URL params so category links from LandingPage work
   const [keyword,   setKeyword]   = useState(searchParams.get('keyword')  ?? '');
   const [category,  setCategory]  = useState<JobCategory | ''>(
     (searchParams.get('category') as JobCategory) || ''
@@ -36,16 +36,17 @@ const ExploreJobs: React.FC = () => {
   const [maxBudget, setMaxBudget] = useState(searchParams.get('maxBudget') ?? '');
   const [sortBy,    setSortBy]    = useState<SortBy>((searchParams.get('sortBy') as SortBy) || 'newest');
   const [page,      setPage]      = useState(parseInt(searchParams.get('page') ?? '1', 10));
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
-  const [result,        setResult]        = useState<PagedResult<JobPostListItem> | null>(null);
-  const [loading,       setLoading]       = useState(true);
-  const [fetchError,    setFetchError]    = useState<string | null>(null);
-  const [myAppIds,      setMyAppIds]      = useState<Set<number>>(new Set());
-  const [applyMsg,      setApplyMsg]      = useState<Record<number, string>>({});
-  const [applyLoading,  setApplyLoading]  = useState<Record<number, boolean>>({});
-  const [notification,  setNotification]  = useState<{ jobId: number; msg: string; type: 'success' | 'error' } | null>(null);
+  const [result,       setResult]       = useState<PagedResult<JobPostListItem> | null>(null);
+  const [loading,      setLoading]      = useState(true);
+  const [fetchError,   setFetchError]   = useState<string | null>(null);
+  const [myAppIds,     setMyAppIds]     = useState<Set<number>>(new Set());
+  const [applyMsg,     setApplyMsg]     = useState<Record<number, string>>({});
+  const [applyLoading, setApplyLoading] = useState<Record<number, boolean>>({});
+  const [notification, setNotification] = useState<{ jobId: number; msg: string; type: 'success' | 'error' } | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<number | undefined>();
 
-  // Core fetch — accepts overrides to allow immediate re-fetch after state changes
   const fetchWith = useCallback(async (overrides: {
     keyword?: string; category?: JobCategory | ''; location?: string;
     minBudget?: string; maxBudget?: string; sortBy?: SortBy; page?: number;
@@ -62,22 +63,21 @@ const ExploreJobs: React.FC = () => {
     setFetchError(null);
     try {
       const params: Record<string, string | number> = { page: pg, pageSize: PAGE_SIZE };
-      if (kw)              params.keyword   = kw;
-      if (cat)             params.category  = cat;
-      if (loc)             params.location  = loc;
-      if (min)             params.minPrice  = min;
-      if (max)             params.maxPrice  = max;
-      if (srt !== 'newest') params.sortBy   = srt;
+      if (kw)  params.keyword  = kw;
+      if (cat) params.category = cat;
+      if (loc) params.location = loc;
+      if (min) params.minPrice = min;
+      if (max) params.maxPrice = max;
+      if (srt !== 'newest') params.sortBy = srt;
 
-      // Sync URL for shareability
       const urlParams: Record<string, string> = {};
-      if (kw)              urlParams.keyword   = kw;
-      if (cat)             urlParams.category  = cat;
-      if (loc)             urlParams.location  = loc;
-      if (min)             urlParams.minBudget = min;
-      if (max)             urlParams.maxBudget = max;
-      if (srt !== 'newest') urlParams.sortBy   = srt;
-      if (pg  > 1)         urlParams.page      = pg.toString();
+      if (kw)  urlParams.keyword   = kw;
+      if (cat) urlParams.category  = cat;
+      if (loc) urlParams.location  = loc;
+      if (min) urlParams.minBudget = min;
+      if (max) urlParams.maxBudget = max;
+      if (srt !== 'newest') urlParams.sortBy = srt;
+      if (pg  > 1) urlParams.page = pg.toString();
       setSearchParams(urlParams, { replace: true });
 
       const [jobsRes, appsRes] = await Promise.all([
@@ -93,7 +93,6 @@ const ExploreJobs: React.FC = () => {
     }
   }, [keyword, category, location, minBudget, maxBudget, sortBy, page, setSearchParams]);
 
-  // Initial load
   useEffect(() => { fetchWith(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCategoryClick = (cat: JobCategory | '') => {
@@ -139,52 +138,48 @@ const ExploreJobs: React.FC = () => {
   };
 
   const resetFilters = () => {
-    setKeyword('');
-    setCategory('');
-    setLocation('');
-    setMinBudget('');
-    setMaxBudget('');
-    setSortBy('newest');
-    setPage(1);
+    setKeyword(''); setCategory(''); setLocation('');
+    setMinBudget(''); setMaxBudget(''); setSortBy('newest'); setPage(1);
     fetchWith({ keyword: '', category: '', location: '', minBudget: '', maxBudget: '', sortBy: 'newest', page: 1 });
   };
 
-  const jobs  = result?.items ?? [];
-  const total = result?.totalCount ?? 0;
+  const jobs       = result?.items ?? [];
+  const total      = result?.totalCount ?? 0;
   const totalPages = result?.totalPages ?? 0;
   const hasFilters = !!(keyword || category || location || minBudget || maxBudget || sortBy !== 'newest');
 
+  const mapJobs = jobs.map(j => ({ id: j.id, title: j.title, location: j.location, budget: j.budget }));
+
   return (
-    <div className="page-wrap">
-      {/* Header */}
-      <div className="explore-header">
-        <div>
-          <h1>Explorează joburi</h1>
-          <p className="text-muted">Găsește taskuri disponibile în zona ta</p>
+    <div className="explore-shell">
+
+      {/* ── Top bar ── */}
+      <div className="explore-topbar">
+        <div className="explore-topbar-left">
+          <h1 className="explore-title-text">Explorează joburi</h1>
+          <p className="explore-subtitle">Găsește taskuri disponibile în zona ta</p>
+        </div>
+        <div className="explore-topbar-right">
+          <div className="explore-search-bar">
+            <span className="explore-search-icon">🔍</span>
+            <input
+              type="text"
+              className="explore-search-input"
+              placeholder="Caută: curățenie, reparații, meditații..."
+              value={keyword}
+              onChange={e => setKeyword(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleFilter()}
+            />
+            <button className="btn btn-primary explore-search-btn" onClick={handleFilter}>
+              Caută
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Search bar */}
-      <div className="explore-search-bar">
-        <input
-          type="text"
-          className="explore-search-input"
-          placeholder="Caută joburi: curățenie, reparații, meditații..."
-          value={keyword}
-          onChange={e => setKeyword(e.target.value)}
-          onKeyDown={e => e.key === 'Enter' && handleFilter()}
-        />
-        <button className="btn btn-primary explore-search-btn" onClick={handleFilter}>
-          🔍 Caută
-        </button>
-      </div>
-
-      {/* Category chips */}
+      {/* ── Category chips ── */}
       <div className="category-chips-wrap">
-        <button
-          className={`chip ${category === '' ? 'chip-active' : ''}`}
-          onClick={() => handleCategoryClick('')}
-        >
+        <button className={`chip ${category === '' ? 'chip-active' : ''}`} onClick={() => handleCategoryClick('')}>
           Toate
         </button>
         {(Object.entries(CATEGORY_LABELS) as [JobCategory, string][]).map(([k, v]) => (
@@ -198,235 +193,232 @@ const ExploreJobs: React.FC = () => {
         ))}
       </div>
 
-      {/* Secondary filters */}
-      <div className="filters-bar card">
-        <div className="filter-row">
-          <div className="form-group">
-            <label>Locație</label>
-            <input
-              type="text"
-              placeholder="ex: Cluj-Napoca"
-              value={location}
-              onChange={e => setLocation(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleFilter()}
-            />
-          </div>
+      {/* ── Main body: left panel + map ── */}
+      <div className="explore-body">
 
-          <div className="form-group">
-            <label>Buget min (RON)</label>
-            <input
-              type="number" min="0" placeholder="0"
-              value={minBudget}
-              onChange={e => setMinBudget(e.target.value)}
-            />
-          </div>
+        {/* Left column */}
+        <div className="explore-left">
 
-          <div className="form-group">
-            <label>Buget max (RON)</label>
-            <input
-              type="number" min="0" placeholder="∞"
-              value={maxBudget}
-              onChange={e => setMaxBudget(e.target.value)}
-            />
-          </div>
-
-          <div className="form-group">
-            <label>Sortare</label>
-            <select value={sortBy} onChange={e => handleSortChange(e.target.value as SortBy)}>
-              {(Object.entries(SORT_LABELS) as [SortBy, string][]).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="filter-actions">
-            <button className="btn btn-primary filter-btn" onClick={handleFilter}>
-              Filtrează
-            </button>
-            {hasFilters && (
-              <button className="btn btn-ghost filter-btn" onClick={resetFilters}>
-                Resetează
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Results */}
-      {fetchError ? (
-        <div className="alert alert-error" style={{ marginTop: '1rem' }}>
-          {fetchError}
-          <button className="btn btn-outline btn-sm" onClick={handleFilter} style={{ marginLeft: '1rem' }}>
-            Reîncearcă
-          </button>
-        </div>
-      ) : loading ? (
-        <div className="loading-wrap">Se încarcă joburile...</div>
-      ) : jobs.length === 0 ? (
-        <div className="empty-state">
-          <h3>Niciun job găsit</h3>
-          <p>Încearcă să modifici filtrele sau revino mai târziu.</p>
-          {hasFilters && (
-            <button className="btn btn-outline" style={{ marginTop: '1rem' }} onClick={resetFilters}>
-              Resetează filtrele
-            </button>
-          )}
-        </div>
-      ) : (
-        <>
-          <p className="explore-count">
-            {total} job{total !== 1 ? 'uri' : ''} găsite
-            {category ? ` în ${CATEGORY_LABELS[category]}` : ''}
-          </p>
-
-          <div className="jobs-grid">
-            {jobs.map(job => {
-              const alreadyApplied = myAppIds.has(job.id);
-              const isOwn          = job.userId === user?.userId;
-              const notif          = notification?.jobId === job.id ? notification : null;
-
-              return (
-                <div key={job.id} className="job-card card">
-                  {/* Main image thumbnail */}
-                  {job.mainImageUrl && (
-                    <div className="jc-thumb-wrap">
-                      <img src={API_ORIGIN + job.mainImageUrl} alt={job.title} className="jc-thumb" />
-                    </div>
-                  )}
-
-                  {/* Top row: category + status */}
-                  <div className="jc-top">
-                    <span className="jc-category">
-                      {CATEGORY_ICONS[job.category]} {CATEGORY_LABELS[job.category] ?? job.category}
-                    </span>
-                    <span className={`badge badge-${job.status.toLowerCase()}`}>
-                      {STATUS_LABELS[job.status] ?? job.status}
-                    </span>
-                  </div>
-
-                  <Link to={`/jobs/${job.id}`} className="jc-title">{job.title}</Link>
-
-                  <p className="jc-desc">
-                    {job.description.slice(0, 120)}{job.description.length > 120 ? '...' : ''}
-                  </p>
-
-                  <div className="jc-meta">
-                    <span>💰 <strong>{job.budget} RON</strong></span>
-                    <span>📍 {job.location}</span>
-                    {job.deadline && (
-                      <span>⏰ {new Date(job.deadline).toLocaleDateString('ro-RO')}</span>
-                    )}
-                    {job.applicationCount > 0 && (
-                      <span className="jc-app-count">
-                        👥 {job.applicationCount} aplicant{job.applicationCount !== 1 ? 'ți' : ''}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Employer info + rating */}
-                  {job.userName && (
-                    <div className="jc-poster">
-                      <Link to={`/users/${job.userId}/profile`} className="jc-poster-name">
-                        {job.userName.charAt(0).toUpperCase()}
-                      </Link>
-                      <div className="jc-poster-info">
-                        <Link to={`/users/${job.userId}/profile`}>{job.userName}</Link>
-                        {job.employerAverageRating > 0 ? (
-                          <span className="jc-rating">
-                            <span className="stars">{renderStars(job.employerAverageRating)}</span>
-                            <span>{job.employerAverageRating.toFixed(1)}</span>
-                            <span className="jc-rating-count">({job.employerReviewCount})</span>
-                          </span>
-                        ) : (
-                          <span className="jc-rating jc-rating-none">Fără recenzii</span>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Notification for this card */}
-                  {notif && (
-                    <div className={`alert alert-${notif.type}`} style={{ marginTop: '0.5rem' }}>
-                      {notif.msg}
-                    </div>
-                  )}
-
-                  {/* Apply section */}
-                  {!isOwn && job.status === 'Open' && (
-                    <div className="jc-apply">
-                      {alreadyApplied ? (
-                        <div className="applied-notice">✓ Ai aplicat deja</div>
-                      ) : (
-                        <>
-                          <textarea
-                            placeholder="Mesajul tău (min. 10 caractere)..."
-                            rows={2}
-                            value={applyMsg[job.id] ?? ''}
-                            onChange={e => setApplyMsg(prev => ({ ...prev, [job.id]: e.target.value }))}
-                          />
-                          <button
-                            className="btn btn-primary btn-sm"
-                            disabled={applyLoading[job.id]}
-                            onClick={() => handleApply(job.id)}
-                          >
-                            {applyLoading[job.id] ? 'Se trimite...' : 'Aplică'}
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  )}
-
-                  {isOwn && <div className="jc-own-badge">Jobul tău</div>}
-
-                  <Link to={`/jobs/${job.id}`} className="jc-details-link">
-                    Vezi detalii →
-                  </Link>
+          {/* Filters panel */}
+          <div className="filters-panel card">
+            <div className="filters-panel-header" onClick={() => setFiltersOpen(o => !o)}>
+              <span className="filters-panel-title">⚙ Filtre</span>
+              {hasFilters && <span className="filters-active-dot" title="Filtre active" />}
+              <span className="filters-panel-toggle">{filtersOpen ? '▲' : '▼'}</span>
+            </div>
+            <div className={`filters-panel-body ${filtersOpen ? 'open' : ''}`}>
+              <div className="filter-grid">
+                <div className="form-group">
+                  <label>Locație</label>
+                  <input
+                    type="text" placeholder="ex: Cluj-Napoca"
+                    value={location} onChange={e => setLocation(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && handleFilter()}
+                  />
                 </div>
-              );
-            })}
+                <div className="form-group">
+                  <label>Buget min (RON)</label>
+                  <input type="number" min="0" placeholder="0"
+                    value={minBudget} onChange={e => setMinBudget(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Buget max (RON)</label>
+                  <input type="number" min="0" placeholder="∞"
+                    value={maxBudget} onChange={e => setMaxBudget(e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label>Sortare</label>
+                  <select value={sortBy} onChange={e => handleSortChange(e.target.value as SortBy)}>
+                    {(Object.entries(SORT_LABELS) as [SortBy, string][]).map(([k, v]) => (
+                      <option key={k} value={k}>{v}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="filter-actions">
+                <button className="btn btn-primary filter-btn" onClick={handleFilter}>Filtrează</button>
+                {hasFilters && (
+                  <button className="btn btn-ghost filter-btn" onClick={resetFilters}>Resetează</button>
+                )}
+              </div>
+            </div>
           </div>
 
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="pagination">
-              <button
-                className="btn btn-ghost btn-sm"
-                disabled={page <= 1}
-                onClick={() => handlePageChange(page - 1)}
-              >
-                ← Anterioară
-              </button>
-              <div className="pagination-pages">
-                {Array.from({ length: totalPages }, (_, i) => i + 1)
-                  .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
-                  .reduce<(number | '...')[]>((acc, p, idx, arr) => {
-                    if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
-                    acc.push(p);
-                    return acc;
-                  }, [])
-                  .map((p, idx) =>
-                    p === '...'
-                      ? <span key={`ellipsis-${idx}`} className="pagination-ellipsis">…</span>
-                      : <button
-                          key={p}
-                          className={`btn btn-sm ${page === p ? 'btn-primary' : 'btn-ghost'}`}
-                          onClick={() => handlePageChange(p as number)}
-                        >
-                          {p}
-                        </button>
-                  )}
-              </div>
-              <button
-                className="btn btn-ghost btn-sm"
-                disabled={page >= totalPages}
-                onClick={() => handlePageChange(page + 1)}
-              >
-                Următoare →
+          {/* Results */}
+          {fetchError ? (
+            <div className="alert alert-error" style={{ marginTop: '1rem' }}>
+              {fetchError}
+              <button className="btn btn-outline btn-sm" onClick={handleFilter} style={{ marginLeft: '1rem' }}>
+                Reîncearcă
               </button>
             </div>
+          ) : loading ? (
+            <div className="loading-wrap">Se încarcă joburile...</div>
+          ) : jobs.length === 0 ? (
+            <div className="empty-state">
+              <h3>Niciun job găsit</h3>
+              <p>Încearcă să modifici filtrele sau revino mai târziu.</p>
+              {hasFilters && (
+                <button className="btn btn-outline" style={{ marginTop: '1rem' }} onClick={resetFilters}>
+                  Resetează filtrele
+                </button>
+              )}
+            </div>
+          ) : (
+            <>
+              <p className="explore-count">
+                {total} job{total !== 1 ? 'uri' : ''} disponibile
+                {category ? ` în ${CATEGORY_LABELS[category]}` : ''}
+              </p>
+
+              <div className="jobs-list">
+                {jobs.map(job => {
+                  const alreadyApplied = myAppIds.has(job.id);
+                  const isOwn          = job.userId === user?.userId;
+                  const notif          = notification?.jobId === job.id ? notification : null;
+                  const isSelected     = selectedJobId === job.id;
+
+                  return (
+                    <div
+                      key={job.id}
+                      className={`job-card card ${isSelected ? 'job-card-selected' : ''}`}
+                      onClick={() => setSelectedJobId(job.id)}
+                    >
+                      {/* Thumbnail */}
+                      {job.mainImageUrl && (
+                        <div className="jc-thumb-wrap">
+                          <img src={API_ORIGIN + job.mainImageUrl} alt={job.title} className="jc-thumb" />
+                        </div>
+                      )}
+
+                      {/* Top: category + status */}
+                      <div className="jc-top">
+                        <span className="jc-category">
+                          {CATEGORY_ICONS[job.category]} {CATEGORY_LABELS[job.category] ?? job.category}
+                        </span>
+                        <span className={`badge badge-${job.status.toLowerCase()}`}>
+                          {STATUS_LABELS[job.status] ?? job.status}
+                        </span>
+                      </div>
+
+                      <Link to={`/jobs/${job.id}`} className="jc-title">{job.title}</Link>
+
+                      <p className="jc-desc">
+                        {job.description.slice(0, 110)}{job.description.length > 110 ? '...' : ''}
+                      </p>
+
+                      <div className="jc-meta">
+                        <span className="jc-price">💰 <strong>{job.budget} RON</strong></span>
+                        <span>📍 {job.location}</span>
+                        {job.deadline && (
+                          <span>⏰ {new Date(job.deadline).toLocaleDateString('ro-RO')}</span>
+                        )}
+                        {job.applicationCount > 0 && (
+                          <span className="jc-app-count">
+                            👥 {job.applicationCount} aplicant{job.applicationCount !== 1 ? 'ți' : ''}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Employer row */}
+                      {job.userName && (
+                        <div className="jc-poster">
+                          <Link to={`/users/${job.userId}/profile`} className="jc-poster-avatar">
+                            {job.userName.charAt(0).toUpperCase()}
+                          </Link>
+                          <div className="jc-poster-info">
+                            <Link to={`/users/${job.userId}/profile`}>{job.userName}</Link>
+                            {job.employerAverageRating > 0 ? (
+                              <span className="jc-rating">
+                                <span className="stars">{renderStars(job.employerAverageRating)}</span>
+                                <span>{job.employerAverageRating.toFixed(1)}</span>
+                                <span className="jc-rating-count">({job.employerReviewCount})</span>
+                              </span>
+                            ) : (
+                              <span className="jc-rating jc-rating-none">Fără recenzii</span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {notif && (
+                        <div className={`alert alert-${notif.type}`} style={{ marginTop: '0.5rem' }}>
+                          {notif.msg}
+                        </div>
+                      )}
+
+                      {!isOwn && job.status === 'Open' && (
+                        <div className="jc-apply" onClick={e => e.stopPropagation()}>
+                          {alreadyApplied ? (
+                            <div className="applied-notice">✓ Ai aplicat deja</div>
+                          ) : (
+                            <>
+                              <textarea
+                                placeholder="Mesajul tău (min. 10 caractere)..."
+                                rows={2}
+                                value={applyMsg[job.id] ?? ''}
+                                onChange={e => setApplyMsg(prev => ({ ...prev, [job.id]: e.target.value }))}
+                              />
+                              <button
+                                className="btn btn-primary btn-sm"
+                                disabled={applyLoading[job.id]}
+                                onClick={() => handleApply(job.id)}
+                              >
+                                {applyLoading[job.id] ? 'Se trimite...' : 'Aplică acum'}
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      )}
+
+                      {isOwn && <div className="jc-own-badge">Jobul tău</div>}
+
+                      <Link to={`/jobs/${job.id}`} className="jc-details-link" onClick={e => e.stopPropagation()}>
+                        Vezi detalii →
+                      </Link>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <div className="pagination">
+                  <button className="btn btn-ghost btn-sm" disabled={page <= 1}
+                    onClick={() => handlePageChange(page - 1)}>← Anterioară</button>
+                  <div className="pagination-pages">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                      .filter(p => p === 1 || p === totalPages || Math.abs(p - page) <= 2)
+                      .reduce<(number | '...')[]>((acc, p, idx, arr) => {
+                        if (idx > 0 && (p as number) - (arr[idx - 1] as number) > 1) acc.push('...');
+                        acc.push(p);
+                        return acc;
+                      }, [])
+                      .map((p, idx) =>
+                        p === '...'
+                          ? <span key={`e-${idx}`} className="pagination-ellipsis">…</span>
+                          : <button key={p}
+                              className={`btn btn-sm ${page === p ? 'btn-primary' : 'btn-ghost'}`}
+                              onClick={() => handlePageChange(p as number)}>{p}</button>
+                      )}
+                  </div>
+                  <button className="btn btn-ghost btn-sm" disabled={page >= totalPages}
+                    onClick={() => handlePageChange(page + 1)}>Următoare →</button>
+                </div>
+              )}
+            </>
           )}
-        </>
-      )}
+        </div>
+
+        {/* Right column — sticky map */}
+        <div className="explore-right">
+          <div className="explore-map-header">
+            <span>Hartă</span>
+            <span className="explore-map-count">{total} joburi</span>
+          </div>
+          <JobMap jobs={mapJobs} selectedJobId={selectedJobId} onJobSelect={setSelectedJobId} />
+        </div>
+      </div>
     </div>
   );
 };

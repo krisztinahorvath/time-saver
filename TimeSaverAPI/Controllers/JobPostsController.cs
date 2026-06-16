@@ -99,6 +99,8 @@ namespace TimeSaverAPI.Controllers
                     EmployerReviewCount = j.User?.ReceivedReviews?.Count ?? 0,
                     ApplicationCount    = j.JobApplications?.Count ?? 0,
                     MainImageUrl        = mainImg?.ImageUrl,
+                    Latitude            = j.Latitude,
+                    Longitude           = j.Longitude,
                 };
             }).ToList();
 
@@ -155,6 +157,8 @@ namespace TimeSaverAPI.Controllers
                 Location            = dto.Location,
                 Deadline            = dto.Deadline,
                 SpecialRequirements = dto.SpecialRequirements,
+                Latitude            = dto.Latitude,
+                Longitude           = dto.Longitude,
                 Status              = JobStatus.Open,
                 CreatedAt           = DateTime.UtcNow,
                 UserId              = CurrentUserId

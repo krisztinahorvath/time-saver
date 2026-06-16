@@ -41,6 +41,13 @@ namespace TimeSaverAPI.Data
                 .HasForeignKey(r => r.ReviewedUserId)
                 .OnDelete(DeleteBehavior.ClientCascade);
 
+            // Phase 7: review → job (nullable; if job deleted, nullify not cascade)
+            modelBuilder.Entity<Review>()
+                .HasOne(r => r.JobPost)
+                .WithMany()
+                .HasForeignKey(r => r.JobPostId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
             // job posts and job post images
             modelBuilder.Entity<JobPostImage>()
                 .HasOne(i => i.JobPost)

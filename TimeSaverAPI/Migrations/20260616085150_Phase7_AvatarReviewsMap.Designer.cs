@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TimeSaverAPI.Data;
 
@@ -11,9 +12,11 @@ using TimeSaverAPI.Data;
 namespace TimeSaverAPI.Migrations
 {
     [DbContext(typeof(TimeSaverContext))]
-    partial class TimeSaverContextModelSnapshot : ModelSnapshot
+    [Migration("20260616085150_Phase7_AvatarReviewsMap")]
+    partial class Phase7_AvatarReviewsMap
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -420,9 +423,6 @@ namespace TimeSaverAPI.Migrations
 
                     b.Property<string>("Password")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PhoneNumber")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("UserType")

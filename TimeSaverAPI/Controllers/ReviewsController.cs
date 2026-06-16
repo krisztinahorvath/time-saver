@@ -28,16 +28,16 @@ namespace TimeSaverAPI.Controllers
         private long CurrentUserId =>
             long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
-        // GET: api/reviews/given
+        // GET: api/reviews/given  — returns { reviewedUserId, jobPostId } pairs for current user
         [HttpGet("reviews/given")]
         public async Task<IActionResult> GetGivenReviews()
         {
-            var reviewedIds = await _context.Reviews
+            var given = await _context.Reviews
                 .Where(r => r.ReviewerUserId == CurrentUserId)
-                .Select(r => r.ReviewedUserId)
+                .Select(r => new { r.ReviewedUserId, r.JobPostId })
                 .ToListAsync();
 
-            return Ok(reviewedIds);
+            return Ok(given);
         }
 
         // POST: api/users/{id}/review
@@ -47,22 +47,33 @@ namespace TimeSaverAPI.Controllers
             if (id == CurrentUserId)
                 return BadRequest(new { message = "Nu îți poți lăsa o recenzie ție însuți." });
 
+            if (!dto.JobPostId.HasValue)
+                return BadRequest(new { message = "Trebuie să specifici jobul pentru care lași recenzia." });
+
             var reviewedUser = await _context.Users.FindAsync(id);
             if (reviewedUser == null) return NotFound(new { message = "Utilizatorul nu a fost găsit." });
 
-            bool workedTogether = await _context.JobPosts.AnyAsync(j =>
+            // Validate the job exists, is completed, and both users participated
+            var sharedJob = await _context.JobPosts.FirstOrDefaultAsync(j =>
+                j.Id == dto.JobPostId.Value &&
                 j.Status == JobStatus.Completed &&
                 ((j.UserId == CurrentUserId && j.AcceptedByUserId == id) ||
                  (j.UserId == id && j.AcceptedByUserId == CurrentUserId)));
 
-            if (!workedTogether)
-                return BadRequest(new { message = "Poți recenza doar utilizatori cu care ai finalizat un job." });
+            if (sharedJob == null)
+                return BadRequest(new { message = "Jobul specificat nu există sau nu este un job comun finalizat." });
 
+            // Duplicate check: same reviewer → same reviewed → same job
             bool alreadyReviewed = await _context.Reviews.AnyAsync(r =>
-                r.ReviewerUserId == CurrentUserId && r.ReviewedUserId == id);
+                r.ReviewerUserId == CurrentUserId &&
+                r.ReviewedUserId == id &&
+                r.JobPostId == dto.JobPostId);
 
             if (alreadyReviewed)
-                return BadRequest(new { message = "Ai recenzat deja acest utilizator." });
+                return BadRequest(new { message = "Ai recenzat deja acest utilizator pentru acest job." });
+
+            if (dto.Rating < 1 || dto.Rating > 5)
+                return BadRequest(new { message = "Ratingul trebuie să fie între 1 și 5." });
 
             var reviewer     = await _context.Users.FindAsync(CurrentUserId);
             var reviewerName = reviewer?.Name ?? "Cineva";
@@ -71,6 +82,7 @@ namespace TimeSaverAPI.Controllers
             {
                 ReviewerUserId = CurrentUserId,
                 ReviewedUserId = id,
+                JobPostId      = dto.JobPostId,
                 Rating         = dto.Rating,
                 Comment        = dto.Comment?.Trim() ?? string.Empty,
                 CreatedAt      = DateTime.UtcNow

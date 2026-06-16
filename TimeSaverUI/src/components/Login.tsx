@@ -81,6 +81,20 @@ const Login: React.FC = () => {
           </button>
         </form>
 
+        <div className="auth-social">
+          <div className="auth-divider"><span>sau</span></div>
+          <button type="button" disabled className="btn btn-outline btn-full auth-social-btn">
+            <span className="auth-social-icon">G</span>
+            Continuă cu Google
+            <span className="auth-soon-badge">În curând</span>
+          </button>
+          <button type="button" disabled className="btn btn-outline btn-full auth-social-btn">
+            <span className="auth-social-icon">M</span>
+            Continuă cu Microsoft
+            <span className="auth-soon-badge">În curând</span>
+          </button>
+        </div>
+
         <p className="auth-footer">
           Nu ai cont? <Link to="/register">Înregistrează-te</Link>
         </p>

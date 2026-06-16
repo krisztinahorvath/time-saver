@@ -11,5 +11,7 @@ namespace TimeSaverAPI.DTOs
         public required string Location { get; set; }
         public DateTime? Deadline { get; set; }
         public string? SpecialRequirements { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
     }
 }

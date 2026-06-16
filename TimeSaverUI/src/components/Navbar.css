@@ -1,23 +1,26 @@
+/* ── Shell ── */
 .navbar {
   background: #fff;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
-  z-index: 100;
+  z-index: 200;
   height: 64px;
   box-shadow: var(--shadow);
 }
 
 .navbar-inner {
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   padding: 0 1.25rem;
   height: 100%;
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.75rem;
+  position: relative;
 }
 
+/* ── Logo ── */
 .navbar-logo {
   font-size: 1.2rem;
   font-weight: 800;
@@ -27,21 +30,25 @@
   display: flex;
   align-items: center;
   gap: 0.3rem;
+  margin-right: 0.5rem;
 }
 .navbar-logo span { color: var(--text); }
 .navbar-logo:hover { text-decoration: none; }
 
+/* ── Nav links ── */
 .navbar-links {
   display: flex;
   list-style: none;
-  gap: 0.25rem;
+  gap: 0.15rem;
   flex: 1;
+  margin: 0;
+  padding: 0;
 }
 
 .nav-link {
   font-size: 0.875rem;
   font-weight: 500;
-  padding: 0.4rem 0.75rem;
+  padding: 0.4rem 0.7rem;
   border-radius: var(--radius);
   color: var(--text-muted);
   transition: background var(--transition), color var(--transition);
@@ -51,25 +58,140 @@
 .nav-link:hover  { background: var(--bg); color: var(--text); text-decoration: none; }
 .nav-link.active { background: var(--primary-light); color: var(--primary); font-weight: 700; }
 
-.navbar-user {
+/* ── Right action cluster ── */
+.navbar-actions {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.35rem;
   margin-left: auto;
   flex-shrink: 0;
 }
 
-.navbar-name { font-weight: 600; font-size: 0.88rem; }
+/* ── Icon button (search, etc.) ── */
+.navbar-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0.4rem 0.5rem;
+  border-radius: var(--radius);
+  color: var(--text-muted);
+  line-height: 1;
+  transition: background var(--transition), color var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.navbar-icon-btn:hover { background: var(--bg); color: var(--text); }
 
-.navbar-role {
-  font-size: 0.72rem;
-  background: var(--primary-light);
-  color: var(--primary);
-  padding: 0.15rem 0.55rem;
-  border-radius: 999px;
-  font-weight: 700;
+/* ── Search ── */
+.navbar-search-wrap { display: flex; align-items: center; }
+
+.navbar-search-form {
+  display: flex;
+  align-items: center;
+  border: 1.5px solid var(--primary);
+  border-radius: var(--radius);
+  background: #fff;
+  overflow: hidden;
+  box-shadow: 0 0 0 3px var(--primary-light);
 }
 
+.navbar-search-input {
+  width: 200px;
+  border: none;
+  outline: none;
+  font-size: 0.88rem;
+  padding: 0.4rem 0.5rem;
+  background: transparent;
+  font-family: var(--font);
+  color: var(--text);
+}
+
+/* ── Avatar button ── */
+.navbar-avatar-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: opacity var(--transition), box-shadow var(--transition);
+}
+.navbar-avatar-btn:hover { opacity: 0.9; box-shadow: 0 0 0 3px var(--primary-light); }
+
+/* ── Profile dropdown ── */
+.navbar-profile-wrap { position: relative; }
+
+.navbar-dropdown {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  z-index: 300;
+  overflow: hidden;
+  animation: dropdown-appear 0.12s ease;
+}
+
+@keyframes dropdown-appear {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.navbar-dropdown-header {
+  padding: 0.9rem 1rem 0.75rem;
+}
+.navbar-dropdown-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+.navbar-dropdown-role {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+}
+
+.navbar-dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0;
+}
+
+.navbar-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  font-family: var(--font);
+  transition: background var(--transition);
+}
+.navbar-dropdown-item:hover { background: var(--bg); text-decoration: none; color: var(--text); }
+
+.navbar-dropdown-logout { color: var(--danger); }
+.navbar-dropdown-logout:hover { background: #fef2f2; }
+
+/* ── Auth buttons (logged out) ── */
 .navbar-auth {
   display: flex;
   align-items: center;
@@ -77,6 +199,7 @@
   margin-left: auto;
 }
 
+/* ── Hamburger ── */
 .navbar-toggle {
   display: none;
   background: none;
@@ -84,11 +207,16 @@
   font-size: 1.3rem;
   cursor: pointer;
   color: var(--text-muted);
-  margin-left: auto;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--radius);
+  line-height: 1;
 }
+.navbar-toggle:hover { background: var(--bg); color: var(--text); }
 
+/* ── Mobile ── */
 @media (max-width: 768px) {
-  .navbar-toggle { display: block; }
+  .navbar-toggle { display: flex; margin-left: auto; }
+
   .navbar-links {
     display: none;
     position: absolute;
@@ -97,12 +225,29 @@
     right: 0;
     background: #fff;
     flex-direction: column;
-    padding: 1rem;
+    padding: 0.75rem;
     border-bottom: 1px solid var(--border);
     box-shadow: var(--shadow-md);
-    gap: 0.25rem;
+    gap: 0.15rem;
   }
   .navbar-links.open { display: flex; }
-  .navbar-user { display: none; }
-  .navbar-inner { position: relative; }
+
+  .navbar-actions {
+    /* actions sit between links toggle and the right edge */
+    margin-left: 0;
+    gap: 0.2rem;
+  }
+
+  .navbar-search-input { width: 140px; }
+
+  .navbar-dropdown {
+    right: 0;
+    min-width: 180px;
+  }
+}
+
+@media (max-width: 420px) {
+  .navbar-search-form { display: none; }
+  .navbar-search-wrap.open .navbar-search-form { display: flex; }
+  .navbar-search-input { width: 120px; font-size: 0.82rem; }
 }

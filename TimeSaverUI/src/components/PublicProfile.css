@@ -1,3 +1,4 @@
+/* ── Back link ── */
 .pp-back {
   display: inline-block;
   margin-bottom: 1.25rem;
@@ -7,60 +8,82 @@
 }
 .pp-back:hover { color: var(--primary); text-decoration: none; }
 
-/* Layout */
+/* ── Page layout ── */
 .pp-layout {
   display: grid;
-  grid-template-columns: 300px 1fr;
-  gap: 1.5rem;
+  grid-template-columns: 280px 1fr;
+  gap: 1.75rem;
   align-items: start;
 }
 
-/* Sidebar card */
-.pp-card {
-  text-align: center;
-  padding: 2rem 1.5rem;
+/* ── Sidebar ── */
+.pp-sidebar { position: sticky; top: 80px; }
+
+.pp-card { text-align: center; padding: 2rem 1.5rem; }
+
+/* Avatar */
+.pp-avatar-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 1rem;
 }
 
 .pp-avatar {
-  width: 80px;
-  height: 80px;
+  width: 90px; height: 90px;
   border-radius: 50%;
-  background: var(--primary);
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark, #1a56d6));
   color: #fff;
-  font-size: 2rem;
+  font-size: 2.2rem;
   font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 auto 1rem;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(37,99,235,0.25);
 }
 
-.pp-name {
-  font-size: 1.3rem;
-  font-weight: 800;
-  margin-bottom: 0.4rem;
+.pp-suspended-badge {
+  position: absolute;
+  bottom: -4px; right: -4px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
 }
+
+.pp-name { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.4rem; }
 
 .pp-role-badge {
   display: inline-block;
   background: var(--primary-light);
   color: var(--primary);
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   font-weight: 700;
-  padding: 0.2rem 0.75rem;
+  padding: 0.2rem 0.8rem;
   border-radius: 999px;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.pp-descriere { text-align: left; margin-bottom: 1.25rem; }
+
+.pp-descriere-label {
+  display: block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 0.3rem;
 }
 
 .pp-bio {
-  font-size: 0.88rem;
+  font-size: 0.87rem;
   color: var(--text-muted);
   line-height: 1.6;
   font-style: italic;
-  margin-bottom: 1.25rem;
+  margin: 0;
 }
 
-/* Rating block */
+/* Rating */
 .pp-rating-block {
   padding: 1rem 0;
   border-top: 1px solid var(--border);
@@ -68,48 +91,112 @@
   margin-bottom: 1.25rem;
 }
 
-.pp-rating-stars  { margin-bottom: 0.25rem; }
-.pp-rating-num    { font-size: 2rem; font-weight: 800; color: var(--text); line-height: 1; }
-.pp-rating-label  { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
-.pp-no-rating     { font-size: 0.88rem; color: var(--text-muted); padding: 0.5rem 0; }
+.stars-row    { display: inline-flex; gap: 0.1rem; }
+.stars-sm     { font-size: 0.95rem; }
+.stars-md     { font-size: 1.1rem; }
+.stars-lg     { font-size: 1.4rem; margin-bottom: 0.25rem; }
+.star-filled  { color: #f59e0b; }
+.star-empty   { color: #d1d5db; }
 
-.stars-row { display: inline-flex; gap: 0.1rem; font-size: 1.2rem; }
-.star-filled { color: #f59e0b; }
-.star-empty  { color: #d1d5db; }
+.pp-rating-num   { font-size: 2.2rem; font-weight: 800; color: var(--text); line-height: 1; }
+.pp-rating-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+.pp-no-rating    { font-size: 0.88rem; color: var(--text-muted); padding: 0.5rem 0; }
 
-/* Stats row */
+/* Stats */
 .pp-stats {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  margin-bottom: 1rem;
+  display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem;
 }
-
-.pp-stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.15rem;
-  flex: 1;
-}
+.pp-stat { display: flex; flex-direction: column; align-items: center; gap: 0.12rem; flex: 1; }
 .pp-stat-num   { font-size: 1.6rem; font-weight: 800; color: var(--primary); }
-.pp-stat-label { font-size: 0.75rem; color: var(--text-muted); text-align: center; }
+.pp-stat-label { font-size: 0.73rem; color: var(--text-muted); text-align: center; }
 
 .pp-member-since {
   font-size: 0.8rem;
   color: var(--text-muted);
   padding-top: 0.75rem;
   border-top: 1px solid var(--border);
+  margin-bottom: 1rem;
 }
 
-/* Reviews column */
-.pp-reviews-list {
+/* Actions */
+.pp-actions { display: flex; flex-direction: column; gap: 0.6rem; }
+.pp-action-btn { width: 100%; justify-content: center; }
+.pp-report-btn { color: var(--danger) !important; font-size: 0.82rem; }
+
+/* ── Main panel ── */
+.pp-main { min-width: 0; }
+
+/* Tabs */
+.pp-tabs {
   display: flex;
-  flex-direction: column;
-  gap: 1rem;
+  gap: 0;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 1.25rem;
+}
+.pp-tab {
+  padding: 0.6rem 1.25rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  cursor: pointer;
+  transition: color var(--transition), border-color var(--transition);
+  font-family: var(--font);
+}
+.pp-tab:hover { color: var(--text); }
+.pp-tab-active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* ── Review form ── */
+.pp-review-form {
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+.pp-review-form-title { font-size: 1rem; font-weight: 700; margin-bottom: 0.25rem; }
+.pp-review-form-note  { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.75rem; }
+
+.pp-already-reviewed {
+  font-size: 0.88rem;
+  color: var(--success);
+  font-weight: 600;
+  padding: 0.5rem 0;
 }
 
-.pp-review-card { padding: 1.25rem; }
+.pp-star-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+.pp-star-btn {
+  font-size: 1.6rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #d1d5db;
+  transition: color var(--transition), transform var(--transition);
+  padding: 0;
+  line-height: 1;
+}
+.pp-star-btn:hover,
+.pp-star-on { color: #f59e0b; }
+.pp-star-btn:hover { transform: scale(1.15); }
+.pp-star-label { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.35rem; }
+
+.pp-review-textarea {
+  width: 100%;
+  resize: vertical;
+  min-height: 70px;
+  margin-bottom: 0.75rem;
+  font-size: 0.88rem;
+  font-family: var(--font);
+}
+
+/* ── Reviews list ── */
+.pp-reviews-list { display: flex; flex-direction: column; gap: 1rem; }
+.pp-review-card  { padding: 1.25rem; }
 
 .pp-review-header {
   display: flex;
@@ -120,23 +207,15 @@
   flex-wrap: wrap;
 }
 
-.pp-review-author-wrap {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
+.pp-review-author-wrap { display: flex; align-items: center; gap: 0.6rem; }
 
 .pp-review-avatar {
-  width: 36px;
-  height: 36px;
+  width: 36px; height: 36px;
   border-radius: 50%;
   background: var(--primary-light);
   color: var(--primary);
-  font-size: 0.9rem;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 0.9rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
 
@@ -144,11 +223,8 @@
 .pp-review-date   { font-size: 0.77rem; color: var(--text-muted); }
 
 .pp-review-stars {
-  display: flex;
-  align-items: center;
-  gap: 0.35rem;
+  display: flex; align-items: center; gap: 0.35rem;
 }
-.pp-review-stars .stars-row { font-size: 0.95rem; }
 .pp-review-rating-num { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
 
 .pp-review-comment {
@@ -158,6 +234,41 @@
   line-height: 1.6;
 }
 
-@media (max-width: 768px) {
+/* ── Jobs tab ── */
+.pp-jobs-section { margin-top: 0.25rem; }
+
+.pp-jobs-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.pp-job-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 1.25rem;
+  text-decoration: none;
+  color: var(--text);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.pp-job-card:hover {
+  border-color: var(--primary);
+  box-shadow: 0 2px 12px rgba(37,99,235,0.1);
+  text-decoration: none;
+  color: var(--text);
+}
+
+.pp-job-top {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
+}
+.pp-job-price  { font-weight: 700; font-size: 0.88rem; color: var(--text); }
+.pp-job-title  { font-weight: 700; font-size: 0.95rem; line-height: 1.3; }
+.pp-job-meta   { display: flex; gap: 0.75rem; font-size: 0.78rem; color: var(--text-muted); flex-wrap: wrap; }
+
+/* ── Responsive ── */
+@media (max-width: 860px) {
   .pp-layout { grid-template-columns: 1fr; }
+  .pp-sidebar { position: static; }
+  .pp-jobs-list { grid-template-columns: 1fr; }
 }

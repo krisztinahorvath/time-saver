@@ -37,6 +37,8 @@
 
         public virtual ICollection<AuditLog>? AuditLogs { get; set; }
 
+        public string? AvatarUrl { get; set; }
+        public string? PhoneNumber { get; set; }
         public bool IsSuspended { get; set; }
         public DateTime CreatedAt { get; set; }
     }

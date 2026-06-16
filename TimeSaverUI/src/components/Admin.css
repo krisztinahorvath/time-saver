@@ -211,3 +211,83 @@
   justify-content: flex-end;
   margin-top: 1.25rem;
 }
+
+/* ── Contact modal ── */
+.contact-modal {
+  max-width: 460px;
+  position: relative;
+}
+
+.contact-modal-close {
+  position: absolute;
+  top: 1rem; right: 1rem;
+  background: none; border: none;
+  font-size: 1rem; cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1;
+}
+.contact-modal-close:hover { color: var(--text); }
+
+.contact-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  padding-right: 1.5rem;
+}
+
+.contact-modal-sub {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+.contact-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.contact-job-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color var(--transition), background var(--transition);
+  font-family: var(--font);
+}
+.contact-job-btn:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
+.contact-job-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text);
+  flex: 1;
+}
+
+.contact-job-status {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.contact-cta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.contact-cta-btn {
+  width: 100%;
+  justify-content: center;
+}

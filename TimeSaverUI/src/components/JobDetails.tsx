@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { API_ORIGIN } from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
-import type { JobPost, JobPostImage } from '../types';
+import type { JobPost, JobPostImage, GivenReviewEntry } from '../types';
 import { CATEGORY_LABELS, STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
@@ -21,6 +21,7 @@ interface ConfirmState {
 interface ReviewState {
   userId: number;
   userName: string;
+  jobPostId: number;
 }
 
 const JobDetails: React.FC = () => {
@@ -35,7 +36,7 @@ const JobDetails: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [reviewState, setReviewState] = useState<ReviewState | null>(null);
-  const [reviewedIds,  setReviewedIds]  = useState<Set<number>>(new Set());
+  const [reviewedIds,  setReviewedIds]  = useState<Set<string>>(new Set());
   const [reportingJob, setReportingJob] = useState(false);
 
   // Image upload state
@@ -56,8 +57,8 @@ const JobDetails: React.FC = () => {
 
   const fetchReviewedIds = async () => {
     try {
-      const res = await api.get<number[]>('/reviews/given');
-      setReviewedIds(new Set(res.data));
+      const res = await api.get<GivenReviewEntry[]>('/reviews/given');
+      setReviewedIds(new Set(res.data.map(e => `${e.reviewedUserId}_${e.jobPostId}`)));
     } catch {
       // non-blocking
     }
@@ -250,6 +251,7 @@ const JobDetails: React.FC = () => {
         <ReviewModal
           reviewedUserId={reviewState.userId}
           reviewedUserName={reviewState.userName}
+          jobPostId={reviewState.jobPostId}
           onClose={() => setReviewState(null)}
           onSuccess={handleReviewSuccess}
         />
@@ -420,15 +422,15 @@ const JobDetails: React.FC = () => {
                 {job.status === 'Open' && (
                   <button className="btn btn-danger btn-sm" onClick={deleteJob}>🗑 Sterge job</button>
                 )}
-                {job.status === 'Completed' && job.acceptedByUserId && !reviewedIds.has(job.acceptedByUserId) && (
+                {job.status === 'Completed' && job.acceptedByUserId && !reviewedIds.has(`${job.acceptedByUserId}_${Number(id)}`) && (
                   <button
                     className="btn btn-outline"
-                    onClick={() => setReviewState({ userId: job.acceptedByUserId!, userName: job.acceptedByUser?.name ?? 'Prestator' })}
+                    onClick={() => setReviewState({ userId: job.acceptedByUserId!, userName: job.acceptedByUser?.name ?? 'Prestator', jobPostId: Number(id) })}
                   >
-                    Recenzeaza prestatorul
+                    Trimite o recenzie prestatorului
                   </button>
                 )}
-                {job.status === 'Completed' && job.acceptedByUserId && reviewedIds.has(job.acceptedByUserId) && (
+                {job.status === 'Completed' && job.acceptedByUserId && reviewedIds.has(`${job.acceptedByUserId}_${Number(id)}`) && (
                   <span className="review-given-badge">Ai lasat o recenzie</span>
                 )}
               </div>
@@ -440,15 +442,15 @@ const JobDetails: React.FC = () => {
                 {job.status === 'InProgress' && (
                   <button className="btn btn-success" onClick={completeJob}>Marcheaza finalizat</button>
                 )}
-                {job.status === 'Completed' && !reviewedIds.has(job.userId) && (
+                {job.status === 'Completed' && !reviewedIds.has(`${job.userId}_${Number(id)}`) && (
                   <button
                     className="btn btn-outline"
-                    onClick={() => setReviewState({ userId: job.userId, userName: job.user?.name ?? 'Angajator' })}
+                    onClick={() => setReviewState({ userId: job.userId, userName: job.user?.name ?? 'Angajator', jobPostId: Number(id) })}
                   >
-                    Recenzeaza angajatorul
+                    Trimite o recenzie clientului
                   </button>
                 )}
-                {job.status === 'Completed' && reviewedIds.has(job.userId) && (
+                {job.status === 'Completed' && reviewedIds.has(`${job.userId}_${Number(id)}`) && (
                   <span className="review-given-badge">Ai lasat o recenzie</span>
                 )}
               </div>

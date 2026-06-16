@@ -84,6 +84,8 @@ export interface UserProfile {
   name: string;
   email: string;
   bio: string;
+  avatarUrl?: string | null;
+  phoneNumber?: string | null;
   userType: UserType;
   averageRating: number;
   reviewCount: number;
@@ -93,12 +95,15 @@ export interface PublicProfile {
   id: number;
   name: string;
   bio: string;
+  avatarUrl?: string | null;
+  phoneNumber?: string | null;
   userType: UserType;
   averageRating: number;
   reviewCount: number;
   completedJobsCount: number;
   memberSince: string;
   reviews: ReviewItem[];
+  isSuspended?: boolean;
 }
 
 export interface JobPostImage {
@@ -172,6 +177,8 @@ export interface JobPostListItem {
   employerReviewCount: number;
   applicationCount: number;
   mainImageUrl?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface PagedResult<T> {
@@ -190,6 +197,13 @@ export interface ReviewItem {
   reviewerUserId?: number;
   reviewedUserId?: number;
   reviewerName?: string;
+  jobPostId?: number | null;
+}
+
+// Returned by GET /api/reviews/given
+export interface GivenReviewEntry {
+  reviewedUserId: number | null;
+  jobPostId: number | null;
 }
 
 export interface ReviewsResponse {
@@ -217,6 +231,16 @@ export interface LoginResponse {
   userType: UserType;
 }
 
+export interface PublicJobItem {
+  id: number;
+  title: string;
+  budget: number;
+  category: JobCategory;
+  location: string;
+  createdAt: string;
+  deadline?: string;
+}
+
 export interface CreateJobPostPayload {
   title: string;
   description: string;
@@ -225,6 +249,8 @@ export interface CreateJobPostPayload {
   location: string;
   deadline?: string;
   specialRequirements?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export const CATEGORY_LABELS: Record<JobCategory, string> = {

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
-import type { JobApplication } from '../types';
+import type { JobApplication, GivenReviewEntry } from '../types';
 import { STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
@@ -11,6 +11,7 @@ import './MyApplications.css';
 interface ReviewTarget {
   userId: number;
   userName: string;
+  jobPostId: number;
 }
 
 const MyApplications: React.FC = () => {
@@ -19,7 +20,7 @@ const MyApplications: React.FC = () => {
   const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [confirmPending, setConfirmPending] = useState<number | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
-  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
 
   const fetchApps = async () => {
     try {
@@ -34,8 +35,8 @@ const MyApplications: React.FC = () => {
 
   const fetchReviewedIds = async () => {
     try {
-      const res = await api.get<number[]>('/reviews/given');
-      setReviewedIds(new Set(res.data));
+      const res = await api.get<GivenReviewEntry[]>('/reviews/given');
+      setReviewedIds(new Set(res.data.map(e => `${e.reviewedUserId}_${e.jobPostId}`)));
     } catch {
       // non-blocking
     }
@@ -86,6 +87,7 @@ const MyApplications: React.FC = () => {
         <ReviewModal
           reviewedUserId={reviewTarget.userId}
           reviewedUserName={reviewTarget.userName}
+          jobPostId={reviewTarget.jobPostId}
           onClose={() => setReviewTarget(null)}
           onSuccess={handleReviewSuccess}
         />
@@ -176,7 +178,7 @@ const MyApplications: React.FC = () => {
 
 interface AppCardProps {
   app: JobApplication;
-  reviewedIds: Set<number>;
+  reviewedIds: Set<string>;
   onWithdraw: (id: number) => void;
   onReview: (target: ReviewTarget) => void;
 }
@@ -184,7 +186,7 @@ interface AppCardProps {
 const AppCard: React.FC<AppCardProps> = ({ app, reviewedIds, onWithdraw, onReview }) => {
   const jobCompleted = app.jobPost?.status === 'Completed';
   const employerId  = app.jobPost?.userId;
-  const alreadyReviewed = employerId !== undefined && reviewedIds.has(employerId);
+  const alreadyReviewed = employerId !== undefined && reviewedIds.has(`${employerId}_${app.jobPostId}`);
 
   return (
     <div className={`ma-card card ma-card-${app.jobApplicationStatus.toLowerCase()}`}>
@@ -225,9 +227,9 @@ const AppCard: React.FC<AppCardProps> = ({ app, reviewedIds, onWithdraw, onRevie
           ) : (
             <button
               className="btn btn-outline btn-sm"
-              onClick={() => onReview({ userId: employerId, userName: 'Angajatorul' })}
+              onClick={() => onReview({ userId: employerId, userName: 'Angajatorul', jobPostId: app.jobPostId })}
             >
-              ★ Recenzează angajatorul
+              ★ Trimite o recenzie clientului
             </button>
           )
         )}

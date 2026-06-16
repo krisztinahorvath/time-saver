@@ -197,6 +197,8 @@ namespace TimeSaverAPI.Controllers
                 name          = user.Name,
                 email         = user.Email,
                 bio           = user.Bio,
+                avatarUrl     = user.AvatarUrl,
+                phoneNumber   = user.PhoneNumber,
                 userType      = user.UserType.ToString(),
                 averageRating = avgRating,
                 reviewCount   = user.ReceivedReviews?.Count ?? 0,
@@ -216,15 +218,24 @@ namespace TimeSaverAPI.Controllers
             if (dto.Bio != null)
                 user.Bio = dto.Bio.Trim();
 
+            // AvatarUrl/PhoneNumber: null means "do not change", empty string means "remove"
+            if (dto.AvatarUrl != null)
+                user.AvatarUrl = string.IsNullOrWhiteSpace(dto.AvatarUrl) ? null : dto.AvatarUrl.Trim();
+
+            if (dto.PhoneNumber != null)
+                user.PhoneNumber = string.IsNullOrWhiteSpace(dto.PhoneNumber) ? null : dto.PhoneNumber.Trim();
+
             await _context.SaveChangesAsync();
 
             return Ok(new
             {
-                id       = user.Id,
-                name     = user.Name,
-                email    = user.Email,
-                bio      = user.Bio,
-                userType = user.UserType.ToString(),
+                id          = user.Id,
+                name        = user.Name,
+                email       = user.Email,
+                bio         = user.Bio,
+                avatarUrl   = user.AvatarUrl,
+                phoneNumber = user.PhoneNumber,
+                userType    = user.UserType.ToString(),
             });
         }
 
@@ -266,6 +277,8 @@ namespace TimeSaverAPI.Controllers
                 id                 = user.Id,
                 name               = user.Name,
                 bio                = user.Bio,
+                avatarUrl          = user.AvatarUrl,
+                phoneNumber        = user.PhoneNumber,
                 userType           = user.UserType.ToString(),
                 isSuspended        = user.IsSuspended,
                 averageRating      = avgRating,
@@ -274,6 +287,50 @@ namespace TimeSaverAPI.Controllers
                 memberSince        = user.CreatedAt,
                 reviews,
             });
+        }
+
+        // GET: api/Users/{id}/public-jobs  — open jobs posted by this user
+        [AllowAnonymous]
+        [HttpGet("{id}/public-jobs")]
+        public async Task<IActionResult> GetPublicJobs(long id)
+        {
+            if (!await _context.Users.AnyAsync(u => u.Id == id))
+                return NotFound(new { message = "Utilizatorul nu a fost găsit." });
+
+            var jobs = await _context.JobPosts
+                .Where(j => j.UserId == id && j.Status == JobStatus.Open)
+                .OrderByDescending(j => j.CreatedAt)
+                .Take(20)
+                .Select(j => new
+                {
+                    j.Id,
+                    j.Title,
+                    j.Budget,
+                    j.Category,
+                    j.Location,
+                    j.CreatedAt,
+                    j.Deadline,
+                })
+                .ToListAsync();
+
+            return Ok(jobs);
+        }
+
+        // GET: api/Users/{id}/shared-jobs — jobs where both current user and {id} participated
+        [HttpGet("{id}/shared-jobs")]
+        public async Task<IActionResult> GetSharedJobs(long id)
+        {
+            var myId = CurrentUserId;
+            var jobs = await _context.JobPosts
+                .Where(j =>
+                    (j.Status == JobStatus.InProgress || j.Status == JobStatus.Completed) &&
+                    ((j.UserId == myId && j.AcceptedByUserId == id) ||
+                     (j.UserId == id  && j.AcceptedByUserId == myId)))
+                .OrderByDescending(j => j.CreatedAt)
+                .Select(j => new { j.Id, j.Title, status = j.Status.ToString() })
+                .Take(10)
+                .ToListAsync();
+            return Ok(jobs);
         }
 
         // GET: api/Users

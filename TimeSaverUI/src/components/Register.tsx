@@ -131,7 +131,7 @@ const Register: React.FC = () => {
 
           <div className="form-group">
             <label htmlFor="bio">
-              Biografie scurtă{' '}
+              Descriere{' '}
               {formData.userType === 'Worker' && <span className="required">*</span>}
             </label>
             <textarea

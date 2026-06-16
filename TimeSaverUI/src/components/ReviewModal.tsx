@@ -6,6 +6,7 @@ import './ReviewModal.css';
 interface ReviewModalProps {
   reviewedUserId: number;
   reviewedUserName: string;
+  jobPostId: number;
   onClose: () => void;
   onSuccess: () => void;
 }
@@ -13,6 +14,7 @@ interface ReviewModalProps {
 const ReviewModal: React.FC<ReviewModalProps> = ({
   reviewedUserId,
   reviewedUserName,
+  jobPostId,
   onClose,
   onSuccess,
 }) => {
@@ -30,7 +32,7 @@ const ReviewModal: React.FC<ReviewModalProps> = ({
     setLoading(true);
     setError(null);
     try {
-      await api.post(`/users/${reviewedUserId}/review`, { rating, comment: comment.trim() });
+      await api.post(`/users/${reviewedUserId}/review`, { rating, comment: comment.trim(), jobPostId });
       onSuccess();
     } catch (e) {
       setError(extractApiError(e, 'Eroare la trimiterea recenziei.'));

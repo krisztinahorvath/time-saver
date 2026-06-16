@@ -1,0 +1,173 @@
+.cm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.cm-box {
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 1.75rem;
+  width: 100%;
+  max-width: 460px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  position: relative;
+  color: #111827;
+  user-select: none;
+}
+
+.cm-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.1rem;
+  cursor: pointer;
+  color: #6b7280;
+  line-height: 1;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+  user-select: none;
+}
+.cm-close:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.cm-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 0.35rem 0;
+  padding-right: 1.75rem;
+  line-height: 1.3;
+}
+
+.cm-sub {
+  font-size: 0.88rem;
+  color: #6b7280;
+  margin: 0 0 1rem 0;
+  line-height: 1.5;
+}
+
+/* ── Shared jobs list ── */
+.cm-jobs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.cm-job-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #f9fafb;
+  border: 1.5px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s, background 0.15s;
+  font-family: inherit;
+  color: #111827;
+  user-select: none;
+}
+.cm-job-btn:hover {
+  border-color: #6366f1;
+  background: #eef2ff;
+}
+
+.cm-job-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #111827;
+  flex: 1;
+}
+
+.cm-job-status {
+  font-size: 0.75rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+/* ── Phone section ── */
+.cm-phone-section {
+  margin-top: 0.75rem;
+  padding: 0.85rem 1rem;
+  background: #f0fdf4;
+  border: 1.5px solid #86efac;
+  border-radius: 8px;
+  color: #111827;
+}
+
+.cm-phone-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #16a34a;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.cm-phone-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #111827;
+  user-select: text;
+}
+
+.cm-no-phone {
+  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: #fafafa;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+/* ── CTA list ── */
+.cm-cta-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  margin-top: 0.75rem;
+}
+
+.cm-cta-btn {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+/* ── Footer ── */
+.cm-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 1.25rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* ── Divider ── */
+.cm-divider {
+  border: none;
+  border-top: 1px solid #e5e7eb;
+  margin: 1rem 0;
+}
+
+@media (max-width: 480px) {
+  .cm-box {
+    padding: 1.25rem;
+    border-radius: 8px;
+  }
+}

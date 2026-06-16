@@ -42,6 +42,9 @@ namespace TimeSaverAPI.Models
         public DateTime? Deadline { get; set; }
         public string? SpecialRequirements { get; set; }
 
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
+
         public long UserId { get; set; }
         public virtual User User { get; set; } = null!;
         public long? AcceptedByUserId { get; set; }

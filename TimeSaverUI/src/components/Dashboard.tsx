@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
-import type { JobPost, JobApplication } from '../types';
+import type { JobPost, JobApplication, GivenReviewEntry } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
@@ -32,6 +32,7 @@ interface ConfirmState {
 interface ReviewTarget {
   userId: number;
   userName: string;
+  jobPostId: number;
 }
 
 // ─── EMPLOYER DASHBOARD ────────────────────────────────────────────────────────
@@ -42,7 +43,7 @@ const EmployerDashboard: React.FC = () => {
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
-  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const { user } = useAuth();
 
   const fetchJobs = async () => {
@@ -58,8 +59,8 @@ const EmployerDashboard: React.FC = () => {
 
   const fetchReviewedIds = async () => {
     try {
-      const res = await api.get<number[]>('/reviews/given');
-      setReviewedIds(new Set(res.data));
+      const res = await api.get<GivenReviewEntry[]>('/reviews/given');
+      setReviewedIds(new Set(res.data.map(e => `${e.reviewedUserId}_${e.jobPostId}`)));
     } catch {
       // non-blocking
     }
@@ -149,6 +150,7 @@ const EmployerDashboard: React.FC = () => {
         <ReviewModal
           reviewedUserId={reviewTarget.userId}
           reviewedUserName={reviewTarget.userName}
+          jobPostId={reviewTarget.jobPostId}
           onClose={() => setReviewTarget(null)}
           onSuccess={handleReviewSuccess}
         />
@@ -253,12 +255,12 @@ const EmployerDashboard: React.FC = () => {
       )}
 
       {/* Completed jobs needing review */}
-      {completedJobs.some(j => j.acceptedByUserId && !reviewedIds.has(j.acceptedByUserId)) && (
+      {completedJobs.some(j => j.acceptedByUserId && !reviewedIds.has(`${j.acceptedByUserId}_${j.id}`)) && (
         <>
           <h2 className="section-title" style={{ marginTop: '1.5rem' }}>★ Lasă recenzii</h2>
           <div className="dash-review-list">
             {completedJobs
-              .filter(j => j.acceptedByUserId && !reviewedIds.has(j.acceptedByUserId))
+              .filter(j => j.acceptedByUserId && !reviewedIds.has(`${j.acceptedByUserId}_${j.id}`))
               .map(job => (
                 <div key={job.id} className="dash-review-card card">
                   <div>
@@ -271,10 +273,11 @@ const EmployerDashboard: React.FC = () => {
                     className="btn btn-outline btn-sm"
                     onClick={() => setReviewTarget({
                       userId: job.acceptedByUserId!,
-                      userName: job.acceptedByUser?.name ?? 'Prestator'
+                      userName: job.acceptedByUser?.name ?? 'Prestator',
+                      jobPostId: job.id,
                     })}
                   >
-                    ★ Recenzează
+                    ★ Trimite o recenzie prestatorului
                   </button>
                 </div>
               ))}
@@ -361,17 +364,17 @@ const WorkerDashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
-  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
   const { user } = useAuth();
 
   const fetchData = async () => {
     try {
       const [appsRes, reviewedRes] = await Promise.all([
         api.get<JobApplication[]>('/JobApplications'),
-        api.get<number[]>('/reviews/given').catch(() => ({ data: [] as number[] })),
+        api.get<GivenReviewEntry[]>('/reviews/given').catch(() => ({ data: [] as GivenReviewEntry[] })),
       ]);
       setApplications(appsRes.data);
-      setReviewedIds(new Set(reviewedRes.data));
+      setReviewedIds(new Set(reviewedRes.data.map(e => `${e.reviewedUserId}_${e.jobPostId}`)));
     } catch {
       setError('Eroare la încărcarea datelor.');
     } finally {
@@ -400,6 +403,7 @@ const WorkerDashboard: React.FC = () => {
         <ReviewModal
           reviewedUserId={reviewTarget.userId}
           reviewedUserName={reviewTarget.userName}
+          jobPostId={reviewTarget.jobPostId}
           onClose={() => setReviewTarget(null)}
           onSuccess={handleReviewSuccess}
         />
@@ -466,7 +470,7 @@ const WorkerDashboard: React.FC = () => {
       {/* Completed jobs needing review */}
       {completedJobs.some(a => {
         const eId = a.jobPost?.userId;
-        return eId !== undefined && !reviewedIds.has(eId);
+        return eId !== undefined && !reviewedIds.has(`${eId}_${a.jobPostId}`);
       }) && (
         <>
           <h2 className="section-title" style={{ marginTop: '1.5rem' }}>★ Lasă recenzii</h2>
@@ -474,7 +478,7 @@ const WorkerDashboard: React.FC = () => {
             {completedJobs
               .filter(a => {
                 const eId = a.jobPost?.userId;
-                return eId !== undefined && !reviewedIds.has(eId);
+                return eId !== undefined && !reviewedIds.has(`${eId}_${a.jobPostId}`);
               })
               .map(app => (
                 <div key={app.id} className="dash-review-card card">
@@ -490,10 +494,11 @@ const WorkerDashboard: React.FC = () => {
                     className="btn btn-outline btn-sm"
                     onClick={() => setReviewTarget({
                       userId: app.jobPost!.userId!,
-                      userName: 'Angajatorul'
+                      userName: 'Angajatorul',
+                      jobPostId: app.jobPostId,
                     })}
                   >
-                    ★ Recenzează
+                    ★ Trimite o recenzie clientului
                   </button>
                 </div>
               ))}

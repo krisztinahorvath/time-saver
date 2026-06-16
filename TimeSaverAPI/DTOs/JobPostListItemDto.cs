@@ -17,5 +17,7 @@ namespace TimeSaverAPI.DTOs
         public int EmployerReviewCount { get; set; }
         public int ApplicationCount { get; set; }
         public string? MainImageUrl { get; set; }
+        public double? Latitude { get; set; }
+        public double? Longitude { get; set; }
     }
 }

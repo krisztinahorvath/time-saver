@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
-import type { JobPost } from '../types';
+import type { JobPost, GivenReviewEntry } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
@@ -31,6 +31,7 @@ interface ConfirmState {
 interface ReviewTarget {
   userId: number;
   userName: string;
+  jobPostId: number;
 }
 
 const MyJobs: React.FC = () => {
@@ -39,7 +40,7 @@ const MyJobs: React.FC = () => {
   const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [reviewTarget, setReviewTarget] = useState<ReviewTarget | null>(null);
-  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set());
 
   const fetchJobs = async () => {
     try {
@@ -54,8 +55,8 @@ const MyJobs: React.FC = () => {
 
   const fetchReviewedIds = async () => {
     try {
-      const res = await api.get<number[]>('/reviews/given');
-      setReviewedIds(new Set(res.data));
+      const res = await api.get<GivenReviewEntry[]>('/reviews/given');
+      setReviewedIds(new Set(res.data.map(e => `${e.reviewedUserId}_${e.jobPostId}`)));
     } catch {
       // non-blocking
     }
@@ -170,6 +171,7 @@ const MyJobs: React.FC = () => {
         <ReviewModal
           reviewedUserId={reviewTarget.userId}
           reviewedUserName={reviewTarget.userName}
+          jobPostId={reviewTarget.jobPostId}
           onClose={() => setReviewTarget(null)}
           onSuccess={handleReviewSuccess}
         />
@@ -210,7 +212,7 @@ const MyJobs: React.FC = () => {
       ) : (
         <div className="mj-list">
           {jobs.map(job => {
-            const workerReviewed = job.acceptedByUserId !== undefined && reviewedIds.has(job.acceptedByUserId);
+            const workerReviewed = job.acceptedByUserId !== undefined && reviewedIds.has(`${job.acceptedByUserId}_${job.id}`);
             return (
               <div key={job.id} className="mj-card card">
                 <div className="mj-card-header">
@@ -251,10 +253,11 @@ const MyJobs: React.FC = () => {
                           className="btn btn-outline btn-sm"
                           onClick={() => setReviewTarget({
                             userId: job.acceptedByUserId!,
-                            userName: job.acceptedByUser?.name ?? 'Prestatorul'
+                            userName: job.acceptedByUser?.name ?? 'Prestatorul',
+                            jobPostId: job.id,
                           })}
                         >
-                          ★ Recenzează prestatorul
+                          ★ Trimite o recenzie prestatorului
                         </button>
                       )
                     )}
