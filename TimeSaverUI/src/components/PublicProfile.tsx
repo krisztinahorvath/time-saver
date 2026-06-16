@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import type { PublicProfile as PublicProfileType } from '../types';
+import { useAuth } from '../context/AuthContext';
+import ReportModal from './ReportModal';
 import './PublicProfile.css';
 
 function renderStars(rating: number) {
@@ -23,9 +25,13 @@ function formatMemberSince(dateStr: string): string {
 
 const PublicProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [profile, setProfile] = useState<PublicProfileType | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error,   setError]   = useState(false);
+  const { user, isAuthenticated } = useAuth();
+  const [profile,       setProfile]       = useState<PublicProfileType | null>(null);
+  const [loading,       setLoading]       = useState(true);
+  const [error,         setError]         = useState(false);
+  const [reportUser,    setReportUser]    = useState(false);
+  const [reportReviewId, setReportReviewId] = useState<number | null>(null);
+  const [reportSuccess, setReportSuccess] = useState('');
 
   useEffect(() => {
     setLoading(true);
@@ -50,11 +56,34 @@ const PublicProfile: React.FC = () => {
     </div>
   );
 
-  const isWorker = profile.userType === 'Worker';
+  const isWorker    = profile.userType === 'Worker';
+  const profileId   = Number(id);
+  const isSelf      = user?.userId === profileId;
+  const canReport   = isAuthenticated && !isSelf;
 
   return (
     <div className="page-wrap">
+      {reportUser && (
+        <ReportModal
+          type="User"
+          targetId={profileId}
+          targetLabel={profile.name}
+          onClose={() => setReportUser(false)}
+          onSuccess={() => { setReportUser(false); setReportSuccess('Raport trimis. Mulțumim!'); }}
+        />
+      )}
+      {reportReviewId !== null && (
+        <ReportModal
+          type="Review"
+          targetId={reportReviewId}
+          targetLabel={`Recenzie #${reportReviewId}`}
+          onClose={() => setReportReviewId(null)}
+          onSuccess={() => { setReportReviewId(null); setReportSuccess('Raport trimis. Mulțumim!'); }}
+        />
+      )}
+
       <Link to="/explore" className="pp-back">← Înapoi la joburi</Link>
+      {reportSuccess && <div className="alert alert-success" style={{ margin: '0.5rem 0' }}>{reportSuccess}</div>}
 
       <div className="pp-layout">
         {/* Left: profile card */}
@@ -100,6 +129,16 @@ const PublicProfile: React.FC = () => {
             <div className="pp-member-since">
               📅 Membru din {formatMemberSince(profile.memberSince)}
             </div>
+
+            {canReport && (
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: '1rem', color: 'var(--danger)', width: '100%' }}
+                onClick={() => setReportUser(true)}
+              >
+                🚩 Raportează utilizatorul
+              </button>
+            )}
           </div>
         </aside>
 
@@ -143,6 +182,15 @@ const PublicProfile: React.FC = () => {
                   </div>
                   {r.comment && (
                     <p className="pp-review-comment">"{r.comment}"</p>
+                  )}
+                  {canReport && r.id && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ color: 'var(--danger)', marginTop: '0.5rem', fontSize: '0.8rem' }}
+                      onClick={() => setReportReviewId(r.id)}
+                    >
+                      🚩 Raportează recenzia
+                    </button>
                   )}
                 </div>
               ))}

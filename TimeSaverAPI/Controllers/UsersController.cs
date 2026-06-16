@@ -5,6 +5,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -27,8 +28,8 @@ namespace TimeSaverAPI.Controllers
             IOptions<JwtSettings> jwtSettings,
             IPasswordHasher<User> passwordHasher)
         {
-            _context = context;
-            _jwtSettings = jwtSettings.Value;
+            _context        = context;
+            _jwtSettings    = jwtSettings.Value;
             _passwordHasher = passwordHasher;
         }
 
@@ -40,6 +41,9 @@ namespace TimeSaverAPI.Controllers
         [HttpPost("Register")]
         public async Task<IActionResult> Register(UserRegisterDTO dto)
         {
+            if (dto.UserType == UserType.Admin)
+                return BadRequest(new { message = "Înregistrarea publică cu tipul Admin nu este permisă." });
+
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
                 return BadRequest(new { message = "Adresa de email este deja folosită." });
 
@@ -60,8 +64,9 @@ namespace TimeSaverAPI.Controllers
             return Ok(new { message = "Cont creat cu succes." });
         }
 
-        // POST: api/Users/Login
+        // POST: api/Users/Login  — protected by rate limiting (5/min per IP)
         [AllowAnonymous]
+        [EnableRateLimiting("login-protection")]
         [HttpPost("Login")]
         public async Task<IActionResult> Login(UserLoginDTO dto)
         {
@@ -76,6 +81,9 @@ namespace TimeSaverAPI.Controllers
             if (verifyResult == PasswordVerificationResult.Failed)
                 return Unauthorized(new { message = "Email sau parolă incorectă." });
 
+            if (user.IsSuspended)
+                return StatusCode(403, new { message = "Contul tău a fost suspendat. Contactează echipa de suport." });
+
             // Transparent upgrade: old SHA-256 hash → new PBKDF2 hash on next login
             if (verifyResult == PasswordVerificationResult.SuccessRehashNeeded)
             {
@@ -83,15 +91,90 @@ namespace TimeSaverAPI.Controllers
                 await _context.SaveChangesAsync();
             }
 
-            string token = GenerateJwtToken(user);
+            var accessToken   = GenerateAccessToken(user);
+            var (rawRefresh, hashRefresh) = GenerateRefreshToken();
+
+            _context.RefreshTokens.Add(new RefreshToken
+            {
+                UserId    = user.Id,
+                TokenHash = hashRefresh,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow,
+            });
+            await _context.SaveChangesAsync();
 
             return Ok(new
             {
-                token,
-                userId = user.Id,
-                name = user.Name,
-                userType = user.UserType.ToString()
+                token        = accessToken,   // backward-compat alias
+                accessToken,
+                refreshToken = rawRefresh,
+                userId       = user.Id,
+                name         = user.Name,
+                userType     = user.UserType.ToString(),
             });
+        }
+
+        // POST: api/Users/refresh
+        [AllowAnonymous]
+        [HttpPost("refresh")]
+        public async Task<IActionResult> Refresh(RefreshTokenDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.RefreshToken))
+                return Unauthorized(new { message = "Refresh token lipsă." });
+
+            var hash  = HashToken(dto.RefreshToken);
+            var token = await _context.RefreshTokens
+                .Include(rt => rt.User)
+                .FirstOrDefaultAsync(rt => rt.TokenHash == hash);
+
+            if (token == null || token.IsRevoked || token.ExpiresAt <= DateTime.UtcNow)
+                return Unauthorized(new { message = "Refresh token invalid sau expirat. Autentifică-te din nou." });
+
+            if (token.User.IsSuspended)
+                return StatusCode(403, new { message = "Contul a fost suspendat." });
+
+            // Rotate: revoke old, issue new
+            token.IsRevoked = true;
+
+            var accessToken   = GenerateAccessToken(token.User);
+            var (rawRefresh, hashRefresh) = GenerateRefreshToken();
+
+            _context.RefreshTokens.Add(new RefreshToken
+            {
+                UserId    = token.UserId,
+                TokenHash = hashRefresh,
+                ExpiresAt = DateTime.UtcNow.AddDays(7),
+                CreatedAt = DateTime.UtcNow,
+            });
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                accessToken,
+                refreshToken = rawRefresh,
+            });
+        }
+
+        // POST: api/Users/logout
+        [AllowAnonymous]
+        [HttpPost("logout")]
+        public async Task<IActionResult> Logout(RefreshTokenDto dto)
+        {
+            if (string.IsNullOrWhiteSpace(dto.RefreshToken))
+                return NoContent();
+
+            var hash  = HashToken(dto.RefreshToken);
+            var token = await _context.RefreshTokens
+                .FirstOrDefaultAsync(rt => rt.TokenHash == hash);
+
+            if (token != null && !token.IsRevoked)
+            {
+                token.IsRevoked = true;
+                await _context.SaveChangesAsync();
+            }
+
+            return NoContent();
         }
 
         // GET: api/Users/me
@@ -110,13 +193,13 @@ namespace TimeSaverAPI.Controllers
 
             return Ok(new
             {
-                id = user.Id,
-                name = user.Name,
-                email = user.Email,
-                bio = user.Bio,
-                userType = user.UserType.ToString(),
+                id            = user.Id,
+                name          = user.Name,
+                email         = user.Email,
+                bio           = user.Bio,
+                userType      = user.UserType.ToString(),
                 averageRating = avgRating,
-                reviewCount = user.ReceivedReviews?.Count ?? 0
+                reviewCount   = user.ReceivedReviews?.Count ?? 0,
             });
         }
 
@@ -137,11 +220,11 @@ namespace TimeSaverAPI.Controllers
 
             return Ok(new
             {
-                id = user.Id,
-                name = user.Name,
-                email = user.Email,
-                bio = user.Bio,
-                userType = user.UserType.ToString()
+                id       = user.Id,
+                name     = user.Name,
+                email    = user.Email,
+                bio      = user.Bio,
+                userType = user.UserType.ToString(),
             });
         }
 
@@ -161,7 +244,6 @@ namespace TimeSaverAPI.Controllers
                 ? Math.Round(user.ReceivedReviews.Average(r => r.Rating), 2)
                 : 0;
 
-            // Count completed jobs: for Workers count jobs where they were the worker; for Employers their posted completed jobs
             int completedJobsCount = user.UserType == UserType.Worker
                 ? await _context.JobPosts.CountAsync(j => j.AcceptedByUserId == id && j.Status == JobStatus.Completed)
                 : await _context.JobPosts.CountAsync(j => j.UserId == id && j.Status == JobStatus.Completed);
@@ -175,7 +257,7 @@ namespace TimeSaverAPI.Controllers
                     comment        = r.Comment,
                     createdAt      = r.CreatedAt,
                     reviewerUserId = r.ReviewerUserId,
-                    reviewerName   = r.ReviewerUser?.Name
+                    reviewerName   = r.ReviewerUser?.Name,
                 })
                 .ToList();
 
@@ -185,11 +267,12 @@ namespace TimeSaverAPI.Controllers
                 name               = user.Name,
                 bio                = user.Bio,
                 userType           = user.UserType.ToString(),
+                isSuspended        = user.IsSuspended,
                 averageRating      = avgRating,
                 reviewCount        = user.ReceivedReviews?.Count ?? 0,
                 completedJobsCount,
                 memberSince        = user.CreatedAt,
-                reviews
+                reviews,
             });
         }
 
@@ -200,10 +283,10 @@ namespace TimeSaverAPI.Controllers
             return await _context.Users
                 .Select(u => new
                 {
-                    id = u.Id,
-                    name = u.Name,
-                    email = u.Email,
-                    userType = u.UserType.ToString()
+                    id       = u.Id,
+                    name     = u.Name,
+                    email    = u.Email,
+                    userType = u.UserType.ToString(),
                 })
                 .ToListAsync<object>();
         }
@@ -226,7 +309,6 @@ namespace TimeSaverAPI.Controllers
 
         private PasswordVerificationResult VerifyPassword(User user, string providedPassword)
         {
-            // Try PBKDF2 format first (new registrations)
             var result = _passwordHasher.VerifyHashedPassword(user, user.Password, providedPassword);
             if (result != PasswordVerificationResult.Failed)
                 return result;
@@ -244,7 +326,7 @@ namespace TimeSaverAPI.Controllers
             return BitConverter.ToString(bytes).Replace("-", "").ToLower();
         }
 
-        private string GenerateJwtToken(User user)
+        private string GenerateAccessToken(User user)
         {
             var claims = new[]
             {
@@ -252,15 +334,28 @@ namespace TimeSaverAPI.Controllers
                 new Claim(ClaimTypes.Role, user.UserType.ToString()),
             };
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
+            var key         = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtSettings.Secret));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var token = new JwtSecurityToken(
-                claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(120),
-                signingCredentials: credentials);
+                claims:              claims,
+                expires:             DateTime.UtcNow.AddMinutes(_jwtSettings.ExpiryMinutes),
+                signingCredentials:  credentials);
 
             return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+        private static (string raw, string hash) GenerateRefreshToken()
+        {
+            var raw  = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            var hash = HashToken(raw);
+            return (raw, hash);
+        }
+
+        private static string HashToken(string token)
+        {
+            byte[] bytes = SHA256.HashData(Encoding.UTF8.GetBytes(token));
+            return Convert.ToHexString(bytes);
         }
     }
 }

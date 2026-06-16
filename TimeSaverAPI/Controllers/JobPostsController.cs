@@ -16,11 +16,13 @@ namespace TimeSaverAPI.Controllers
     {
         private readonly TimeSaverContext _context;
         private readonly INotificationService _notifications;
+        private readonly IAuditService _audit;
 
-        public JobPostsController(TimeSaverContext context, INotificationService notifications)
+        public JobPostsController(TimeSaverContext context, INotificationService notifications, IAuditService audit)
         {
             _context       = context;
             _notifications = notifications;
+            _audit         = audit;
         }
 
         private long CurrentUserId =>
@@ -195,6 +197,9 @@ namespace TimeSaverAPI.Controllers
 
             await _context.SaveChangesAsync();
 
+            await _audit.LogAsync(CurrentUserId, "AcceptApplication", "JobPost", jobPost.Id,
+                $"Application {dto.ApplicationId} accepted for job '{jobPost.Title}'");
+
             // Notify accepted worker
             if (application.UserId.HasValue)
             {
@@ -256,6 +261,9 @@ namespace TimeSaverAPI.Controllers
             jobPost.Status = JobStatus.Completed;
             await _context.SaveChangesAsync();
 
+            await _audit.LogAsync(CurrentUserId, "CompleteJob", "JobPost", jobPost.Id,
+                $"Job '{jobPost.Title}' marked completed");
+
             // Notify the other party
             long? recipientId = CurrentUserId == jobPost.UserId
                 ? jobPost.AcceptedByUserId
@@ -287,6 +295,9 @@ namespace TimeSaverAPI.Controllers
 
             _context.JobPosts.Remove(jobPost);
             await _context.SaveChangesAsync();
+
+            await _audit.LogAsync(CurrentUserId, "DeleteJob", "JobPost", id,
+                $"Job '{jobPost.Title}' deleted by owner");
 
             return NoContent();
         }

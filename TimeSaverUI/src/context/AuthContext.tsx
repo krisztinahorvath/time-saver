@@ -4,7 +4,7 @@ import type { AuthUser } from '../types';
 interface AuthContextType {
   user: AuthUser | null;
   isAuthenticated: boolean;
-  login: (token: string, userData: AuthUser) => void;
+  login: (token: string, userData: AuthUser, refreshToken?: string) => void;
   logout: () => void;
   isEmployer: boolean;
   isWorker: boolean;
@@ -25,16 +25,17 @@ function loadStoredUser(): AuthUser | null {
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<AuthUser | null>(loadStoredUser);
 
-  const login = (token: string, userData: AuthUser) => {
+  const login = (token: string, userData: AuthUser, refreshToken?: string) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
+    if (refreshToken) localStorage.setItem('refreshToken', refreshToken);
     setUser(userData);
   };
 
   const logout = () => {
     localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
-    // keep legacy keys clean too
     localStorage.removeItem('username');
     setUser(null);
   };
@@ -47,8 +48,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         isEmployer: user?.userType === 'Employer',
-        isWorker: user?.userType === 'Worker',
-        isAdmin: user?.userType === 'Admin',
+        isWorker:   user?.userType === 'Worker',
+        isAdmin:    user?.userType === 'Admin',
       }}
     >
       {children}

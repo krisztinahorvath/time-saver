@@ -15,6 +15,10 @@ import MyApplications from './components/MyApplications';
 import Profile        from './components/Profile';
 import PublicProfile      from './components/PublicProfile';
 import NotificationsPage from './components/NotificationsPage';
+import AdminDashboard    from './components/AdminDashboard';
+import AdminUsers        from './components/AdminUsers';
+import AdminJobs         from './components/AdminJobs';
+import AdminReports      from './components/AdminReports';
 import NotFound           from './components/NotFound';
 
 // Redirects to /login and saves the intended path so Login can restore it.
@@ -26,6 +30,19 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     sessionStorage.setItem('redirectAfterLogin', location.pathname);
     return <Navigate to="/login" replace />;
   }
+  return <>{children}</>;
+};
+
+// Redirects non-admins to /dashboard.
+const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isAdmin } = useAuth();
+  const location = useLocation();
+
+  if (!isAuthenticated) {
+    sessionStorage.setItem('redirectAfterLogin', location.pathname);
+    return <Navigate to="/login" replace />;
+  }
+  if (!isAdmin) return <Navigate to="/dashboard" replace />;
   return <>{children}</>;
 };
 
@@ -75,6 +92,20 @@ function App() {
       } />
       <Route path="/notifications" element={
         <ProtectedRoute><Layout><NotificationsPage /></Layout></ProtectedRoute>
+      } />
+
+      {/* Admin */}
+      <Route path="/admin" element={
+        <AdminRoute><Layout><AdminDashboard /></Layout></AdminRoute>
+      } />
+      <Route path="/admin/users" element={
+        <AdminRoute><Layout><AdminUsers /></Layout></AdminRoute>
+      } />
+      <Route path="/admin/jobs" element={
+        <AdminRoute><Layout><AdminJobs /></Layout></AdminRoute>
+      } />
+      <Route path="/admin/reports" element={
+        <AdminRoute><Layout><AdminReports /></Layout></AdminRoute>
       } />
 
       {/* Legacy redirects */}

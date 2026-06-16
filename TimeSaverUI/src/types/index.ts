@@ -15,6 +15,64 @@ export type NotificationType =
   | 'NewReview'
   | 'JobCompleted';
 
+export type ReportType   = 'User' | 'Review' | 'Job';
+export type ReportStatus = 'Open' | 'UnderReview' | 'Resolved' | 'Rejected';
+
+export interface Report {
+  id: number;
+  type: ReportType;
+  status: ReportStatus;
+  reason: string;
+  createdAt: string;
+  adminNote?: string;
+  reportedUserId?: number;
+  reportedReviewId?: number;
+  reportedJobPostId?: number;
+}
+
+export interface AdminReport extends Report {
+  reporterName: string;
+  reporterEmail: string;
+  reportedUserName?: string;
+  reportedJobTitle?: string;
+}
+
+export interface AdminUser {
+  id: number;
+  name: string;
+  email: string;
+  userType: UserType;
+  isSuspended: boolean;
+  createdAt: string;
+  jobCount: number;
+  reviewCount: number;
+}
+
+export interface AdminJob {
+  id: number;
+  title: string;
+  budget: number;
+  status: JobStatus;
+  category: JobCategory;
+  location: string;
+  createdAt: string;
+  userId: number;
+  userName?: string;
+}
+
+export interface AdminStats {
+  totalUsers: number;
+  suspendedUsers: number;
+  totalJobs: number;
+  openJobs: number;
+  completedJobs: number;
+  totalReviews: number;
+  openReports: number;
+  totalMessages: number;
+  recentUsers: AdminUser[];
+  recentJobs: AdminJob[];
+}
+
 export interface AuthUser {
   userId: number;
   name: string;
@@ -152,6 +210,8 @@ export interface Message {
 
 export interface LoginResponse {
   token: string;
+  accessToken: string;
+  refreshToken: string;
   userId: number;
   name: string;
   userType: UserType;

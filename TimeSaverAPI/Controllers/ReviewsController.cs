@@ -16,11 +16,13 @@ namespace TimeSaverAPI.Controllers
     {
         private readonly TimeSaverContext _context;
         private readonly INotificationService _notifications;
+        private readonly IAuditService _audit;
 
-        public ReviewsController(TimeSaverContext context, INotificationService notifications)
+        public ReviewsController(TimeSaverContext context, INotificationService notifications, IAuditService audit)
         {
             _context       = context;
             _notifications = notifications;
+            _audit         = audit;
         }
 
         private long CurrentUserId =>
@@ -76,6 +78,9 @@ namespace TimeSaverAPI.Controllers
 
             _context.Reviews.Add(review);
             await _context.SaveChangesAsync();
+
+            await _audit.LogAsync(CurrentUserId, "PostReview", "Review", review.Id,
+                $"Review for user {id} with rating {dto.Rating}");
 
             // Notify reviewed user
             await _notifications.NotifyAsync(

@@ -18,6 +18,9 @@ namespace TimeSaverAPI.Data
         public virtual DbSet<Review> Reviews { get; set; }
         public virtual DbSet<Message> Messages { get; set; }
         public virtual DbSet<Notification> Notifications { get; set; }
+        public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
+        public virtual DbSet<Report> Reports { get; set; }
+        public virtual DbSet<AuditLog> AuditLogs { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -98,6 +101,55 @@ namespace TimeSaverAPI.Data
             // Phase 4: Notification indexes
             modelBuilder.Entity<Notification>().HasIndex(n => n.UserId);
             modelBuilder.Entity<Notification>().HasIndex(n => new { n.UserId, n.IsRead });
+
+            // Phase 5: RefreshTokens
+            modelBuilder.Entity<RefreshToken>()
+                .HasOne(rt => rt.User)
+                .WithMany(u => u.RefreshTokens)
+                .HasForeignKey(rt => rt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<RefreshToken>()
+                .HasIndex(rt => rt.TokenHash)
+                .IsUnique();
+
+            // Phase 5: Reports
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.ReporterUser)
+                .WithMany(u => u.ReportsSubmitted)
+                .HasForeignKey(r => r.ReporterUserId)
+                .OnDelete(DeleteBehavior.ClientCascade);
+
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.ReportedUser)
+                .WithMany(u => u.ReportsAgainstMe)
+                .HasForeignKey(r => r.ReportedUserId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.ReportedReview)
+                .WithMany()
+                .HasForeignKey(r => r.ReportedReviewId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            modelBuilder.Entity<Report>()
+                .HasOne(r => r.ReportedJobPost)
+                .WithMany()
+                .HasForeignKey(r => r.ReportedJobPostId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            modelBuilder.Entity<Report>().HasIndex(r => r.Status);
+            modelBuilder.Entity<Report>().HasIndex(r => r.ReporterUserId);
+
+            // Phase 5: AuditLogs
+            modelBuilder.Entity<AuditLog>()
+                .HasOne(a => a.User)
+                .WithMany(u => u.AuditLogs)
+                .HasForeignKey(a => a.UserId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            modelBuilder.Entity<AuditLog>().HasIndex(a => a.Timestamp);
+            modelBuilder.Entity<AuditLog>().HasIndex(a => a.EntityType);
         }
     }
 }

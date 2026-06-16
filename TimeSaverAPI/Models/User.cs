@@ -30,6 +30,14 @@
 
         public virtual ICollection<Notification>? Notifications { get; set; }
 
+        public virtual ICollection<RefreshToken>? RefreshTokens { get; set; }
+
+        public virtual ICollection<Report>? ReportsSubmitted { get; set; }
+        public virtual ICollection<Report>? ReportsAgainstMe { get; set; }
+
+        public virtual ICollection<AuditLog>? AuditLogs { get; set; }
+
+        public bool IsSuspended { get; set; }
         public DateTime CreatedAt { get; set; }
     }
 }

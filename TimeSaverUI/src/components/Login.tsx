@@ -23,8 +23,8 @@ const Login: React.FC = () => {
 
     try {
       const response = await api.post<LoginResponse>('/Users/Login', credentials);
-      const { token, userId, name, userType } = response.data;
-      login(token, { userId, name, userType });
+      const { accessToken, token, refreshToken, userId, name, userType } = response.data;
+      login(accessToken ?? token, { userId, name, userType }, refreshToken);
       const redirect = sessionStorage.getItem('redirectAfterLogin') || '/dashboard';
       sessionStorage.removeItem('redirectAfterLogin');
       navigate(redirect);

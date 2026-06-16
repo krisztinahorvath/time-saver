@@ -5,7 +5,7 @@ import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
-  const { user, isAuthenticated, logout, isEmployer, isWorker } = useAuth();
+  const { user, isAuthenticated, logout, isEmployer, isWorker, isAdmin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -46,6 +46,9 @@ const Navbar: React.FC = () => {
               )}
               {isWorker && (
                 <li><Link to="/my-applications" className={active('/my-applications')}>Aplicațiile mele</Link></li>
+              )}
+              {isAdmin && (
+                <li><Link to="/admin"           className={active('/admin')}>Admin</Link></li>
               )}
               <li><Link to="/profile"         className={active('/profile')}>Profil</Link></li>
             </ul>

@@ -7,6 +7,7 @@ import type { JobPost, JobPostImage } from '../types';
 import { CATEGORY_LABELS, STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
+import ReportModal from './ReportModal';
 import Chat from './Chat';
 import './JobDetails.css';
 
@@ -34,7 +35,8 @@ const JobDetails: React.FC = () => {
   const [notification, setNotification] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
   const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
   const [reviewState, setReviewState] = useState<ReviewState | null>(null);
-  const [reviewedIds, setReviewedIds] = useState<Set<number>>(new Set());
+  const [reviewedIds,  setReviewedIds]  = useState<Set<number>>(new Set());
+  const [reportingJob, setReportingJob] = useState(false);
 
   // Image upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -250,6 +252,19 @@ const JobDetails: React.FC = () => {
           reviewedUserName={reviewState.userName}
           onClose={() => setReviewState(null)}
           onSuccess={handleReviewSuccess}
+        />
+      )}
+
+      {reportingJob && job && (
+        <ReportModal
+          type="Job"
+          targetId={job.id}
+          targetLabel={job.title}
+          onClose={() => setReportingJob(false)}
+          onSuccess={() => {
+            setReportingJob(false);
+            setNotification({ type: 'success', msg: 'Raport trimis. Mulțumim!' });
+          }}
         />
       )}
 
@@ -500,6 +515,19 @@ const JobDetails: React.FC = () => {
               <Link to={`/users/${job.acceptedByUserId}/profile`} className="btn btn-outline btn-sm" style={{ marginTop: '0.75rem', display: 'block', textAlign: 'center' }}>
                 Vezi profil
               </Link>
+            </div>
+          )}
+
+          {/* Report job — for authenticated non-owners */}
+          {!isOwner && user && (
+            <div className="card" style={{ padding: '1rem' }}>
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ color: 'var(--danger)', width: '100%' }}
+                onClick={() => setReportingJob(true)}
+              >
+                🚩 Raportează jobul
+              </button>
             </div>
           )}
 
