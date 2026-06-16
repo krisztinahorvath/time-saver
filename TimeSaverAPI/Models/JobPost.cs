@@ -44,6 +44,7 @@ namespace TimeSaverAPI.Models
 
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+        public bool IsPlusOnly { get; set; }
 
         public long UserId { get; set; }
         public virtual User User { get; set; } = null!;

@@ -1,3 +1,18 @@
+/* Plus badge on job cards */
+.badge-plus-only {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  white-space: nowrap;
+}
+
 /* ── Shell ── */
 .explore-shell {
   max-width: 1400px;

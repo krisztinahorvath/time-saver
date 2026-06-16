@@ -54,6 +54,10 @@ namespace TimeSaverAPI.Controllers
             return jobApplication;
         }
 
+        private static bool IsActivePlus(Models.User user) =>
+            user.IsPlusSubscriber &&
+            (user.PlusExpiresAt == null || user.PlusExpiresAt > DateTime.UtcNow);
+
         // POST: api/JobApplications
         [HttpPost]
         public async Task<ActionResult<JobApplication>> PostJobApplication(CreateJobApplicationDto dto)
@@ -65,12 +69,17 @@ namespace TimeSaverAPI.Controllers
             if (jobPost.UserId == CurrentUserId)
                 return BadRequest("You cannot apply to your own job.");
 
+            var applicant = await _context.Users.FindAsync(CurrentUserId);
+
+            // Plus-only job guard
+            if (jobPost.IsPlusOnly && (applicant == null || !IsActivePlus(applicant)))
+                return StatusCode(403, new { message = "Doar abonații TimeSaver Plus pot aplica la joburi Plus Matching." });
+
             bool alreadyApplied = await _context.JobApplications
                 .AnyAsync(a => a.JobPostId == dto.JobPostId && a.UserId == CurrentUserId);
             if (alreadyApplied)
                 return BadRequest("You have already applied to this job.");
 
-            var applicant     = await _context.Users.FindAsync(CurrentUserId);
             var applicantName = applicant?.Name ?? "Un utilizator";
 
             var jobApplication = new JobApplication

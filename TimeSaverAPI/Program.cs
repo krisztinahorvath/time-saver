@@ -139,6 +139,14 @@ namespace TimeSaverAPI
 
             app.UseCors("AppPolicy");
 
+            // Allow Stripe webhook to read raw request body before any framework buffering
+            app.Use(async (ctx, next) =>
+            {
+                if (ctx.Request.Path.StartsWithSegments("/api/stripe/webhook"))
+                    ctx.Request.EnableBuffering();
+                await next();
+            });
+
             app.UseStaticFiles();
             app.UseRateLimiter();
             app.UseHttpsRedirection();

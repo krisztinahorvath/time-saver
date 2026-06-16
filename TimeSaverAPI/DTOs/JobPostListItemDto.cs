@@ -19,5 +19,6 @@ namespace TimeSaverAPI.DTOs
         public string? MainImageUrl { get; set; }
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+        public bool IsPlusOnly { get; set; }
     }
 }

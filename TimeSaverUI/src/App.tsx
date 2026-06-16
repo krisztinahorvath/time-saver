@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
+import { PlusProvider } from './context/PlusContext';
 import './App.css';
 
 import LandingPage    from './components/LandingPage';
@@ -19,6 +20,9 @@ import AdminDashboard    from './components/AdminDashboard';
 import AdminUsers        from './components/AdminUsers';
 import AdminJobs         from './components/AdminJobs';
 import AdminReports      from './components/AdminReports';
+import PlusPage           from './components/PlusPage';
+import PlusSuccess        from './components/PlusSuccess';
+import PlusCancel         from './components/PlusCancel';
 import NotFound           from './components/NotFound';
 
 // Redirects to /login and saves the intended path so Login can restore it.
@@ -61,12 +65,24 @@ const Layout: React.FC<{ children: React.ReactNode }> = ({ children }) => (
 
 function App() {
   return (
+    <PlusProvider>
     <Routes>
       {/* Public */}
       <Route path="/"         element={<LandingPage />} />
       <Route path="/login"    element={<AuthRoute><Login /></AuthRoute>} />
       <Route path="/register" element={<AuthRoute><Register /></AuthRoute>} />
       <Route path="/users/:id/profile" element={<Layout><PublicProfile /></Layout>} />
+
+      {/* Plus */}
+      <Route path="/plus" element={
+        <ProtectedRoute><Layout><PlusPage /></Layout></ProtectedRoute>
+      } />
+      <Route path="/plus/success" element={
+        <ProtectedRoute><Layout><PlusSuccess /></Layout></ProtectedRoute>
+      } />
+      <Route path="/plus/cancel" element={
+        <ProtectedRoute><Layout><PlusCancel /></Layout></ProtectedRoute>
+      } />
 
       {/* Protected */}
       <Route path="/dashboard" element={
@@ -115,6 +131,7 @@ function App() {
       {/* 404 */}
       <Route path="*" element={<NotFound />} />
     </Routes>
+    </PlusProvider>
   );
 }
 

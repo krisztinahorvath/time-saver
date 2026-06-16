@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import type { JobCategory, CreateJobPostPayload } from '../types';
 import { CATEGORY_LABELS } from '../types';
+import { usePlus } from '../context/PlusContext';
 import './PostJob.css';
 
 interface FormState {
@@ -13,10 +14,12 @@ interface FormState {
   location: string;
   deadline: string;
   specialRequirements: string;
+  isPlusOnly: boolean;
 }
 
 const PostJob: React.FC = () => {
   const navigate = useNavigate();
+  const { isVerified: isPlusVerified } = usePlus();
   const [form, setForm] = useState<FormState>({
     title: '',
     description: '',
@@ -25,6 +28,7 @@ const PostJob: React.FC = () => {
     location: '',
     deadline: '',
     specialRequirements: '',
+    isPlusOnly: false,
   });
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
   const [status, setStatus] = useState<{ type: 'success' | 'error'; msg: string } | null>(null);
@@ -53,6 +57,7 @@ const PostJob: React.FC = () => {
       budget: parseFloat(form.budget),
       category: form.category,
       location: form.location,
+      isPlusOnly: form.isPlusOnly,
     };
     if (form.deadline)            payload.deadline = new Date(form.deadline).toISOString();
     if (form.specialRequirements) payload.specialRequirements = form.specialRequirements;
@@ -202,6 +207,27 @@ const PostJob: React.FC = () => {
               onChange={handleChange}
             />
           </div>
+
+          {/* Plus Matching — only shown to active Plus employers */}
+          {isPlusVerified && (
+            <div className="form-group">
+              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                <input
+                  type="checkbox"
+                  checked={form.isPlusOnly}
+                  onChange={e => setForm(f => ({ ...f, isPlusOnly: e.target.checked }))}
+                  style={{ width: 'auto' }}
+                />
+                <span>⭐ Job Plus Matching (vizibil exclusiv pentru prestatori Plus)</span>
+              </label>
+              {form.isPlusOnly && (
+                <p className="text-muted" style={{ fontSize: '0.83rem', marginTop: '0.25rem' }}>
+                  Jobul va fi ascuns utilizatorilor fără abonament Plus.
+                  Aplicanții Plus apar primii în lista ta.
+                </p>
+              )}
+            </div>
+          )}
 
           <div className="postjob-actions">
             <button type="button" className="btn btn-ghost" onClick={() => navigate(-1)}>

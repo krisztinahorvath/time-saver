@@ -21,6 +21,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="10.0.2" />
     <PackageReference Include="NuGet.Packaging" Version="6.12.5" />
+    <PackageReference Include="Stripe.net" Version="45.0.0" />
     <PackageReference Include="NuGet.Protocol" Version="6.12.5" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
   </ItemGroup>

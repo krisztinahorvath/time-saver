@@ -1,3 +1,13 @@
+/* Plus verified badge next to name */
+.pp-plus-badge {
+  display: inline-block;
+  margin-left: 0.35rem;
+  font-size: 1rem;
+  color: #f59e0b;
+  vertical-align: middle;
+  cursor: default;
+}
+
 /* ── Back link ── */
 .pp-back {
   display: inline-block;

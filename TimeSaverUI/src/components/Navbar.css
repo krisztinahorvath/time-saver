@@ -84,6 +84,11 @@
 }
 .navbar-icon-btn:hover { background: var(--bg); color: var(--text); }
 
+.navbar-plus-btn { color: #b45309; text-decoration: none; }
+.navbar-plus-btn:hover { color: #92400e; }
+.navbar-plus-active { color: #f59e0b !important; }
+.navbar-plus-active:hover { color: #d97706 !important; }
+
 /* ── Search ── */
 .navbar-search-wrap { display: flex; align-items: center; }
 

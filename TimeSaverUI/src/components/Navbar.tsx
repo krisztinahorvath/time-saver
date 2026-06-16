@@ -1,11 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { usePlus } from '../context/PlusContext';
 import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
   const { user, isAuthenticated, logout, isEmployer, isWorker, isAdmin } = useAuth();
+  const { isVerified: isPlusVerified } = usePlus();
   const navigate   = useNavigate();
   const location   = useLocation();
   const [menuOpen,    setMenuOpen]    = useState(false);
@@ -130,6 +132,16 @@ const Navbar: React.FC = () => {
                   </button>
                 )}
               </div>
+
+              {/* Plus button */}
+              <Link
+                to="/plus"
+                className={`navbar-icon-btn navbar-plus-btn${isPlusVerified ? ' navbar-plus-active' : ''}`}
+                title={isPlusVerified ? 'TimeSaver Plus activ' : 'TimeSaver Plus'}
+                aria-label="TimeSaver Plus"
+              >
+                ⭐
+              </Link>
 
               {/* Notification bell */}
               <NotificationBell />

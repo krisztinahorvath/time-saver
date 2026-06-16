@@ -21,6 +21,7 @@ namespace TimeSaverAPI.Data
         public virtual DbSet<RefreshToken> RefreshTokens { get; set; }
         public virtual DbSet<Report> Reports { get; set; }
         public virtual DbSet<AuditLog> AuditLogs { get; set; }
+        public virtual DbSet<ProfileVisit> ProfileVisits { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -157,6 +158,22 @@ namespace TimeSaverAPI.Data
 
             modelBuilder.Entity<AuditLog>().HasIndex(a => a.Timestamp);
             modelBuilder.Entity<AuditLog>().HasIndex(a => a.EntityType);
+
+            // Phase 9: ProfileVisits
+            modelBuilder.Entity<ProfileVisit>()
+                .HasOne(pv => pv.VisitorUser)
+                .WithMany(u => u.ProfileVisitsGiven)
+                .HasForeignKey(pv => pv.VisitorUserId)
+                .OnDelete(DeleteBehavior.ClientCascade);
+
+            modelBuilder.Entity<ProfileVisit>()
+                .HasOne(pv => pv.ProfileUser)
+                .WithMany(u => u.ProfileVisitsReceived)
+                .HasForeignKey(pv => pv.ProfileUserId)
+                .OnDelete(DeleteBehavior.ClientCascade);
+
+            modelBuilder.Entity<ProfileVisit>().HasIndex(pv => pv.ProfileUserId);
+            modelBuilder.Entity<ProfileVisit>().HasIndex(pv => new { pv.VisitorUserId, pv.ProfileUserId });
         }
     }
 }

@@ -251,6 +251,27 @@ namespace TimeSaverAPI.Controllers
 
             if (user == null) return NotFound(new { message = "Utilizatorul nu a fost găsit." });
 
+            // Record profile visit (only for authenticated users visiting someone else's profile)
+            var visitorClaim = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (long.TryParse(visitorClaim, out var visitorId) && visitorId != id)
+            {
+                // Upsert: one record per visitor per day per profile (keep it lean)
+                var today = DateTime.UtcNow.Date;
+                bool alreadyRecordedToday = await _context.ProfileVisits
+                    .AnyAsync(pv => pv.VisitorUserId == visitorId && pv.ProfileUserId == id &&
+                                    pv.VisitedAt >= today);
+                if (!alreadyRecordedToday)
+                {
+                    _context.ProfileVisits.Add(new Models.ProfileVisit
+                    {
+                        VisitorUserId = visitorId,
+                        ProfileUserId = id,
+                        VisitedAt     = DateTime.UtcNow,
+                    });
+                    await _context.SaveChangesAsync();
+                }
+            }
+
             double avgRating = user.ReceivedReviews != null && user.ReceivedReviews.Count > 0
                 ? Math.Round(user.ReceivedReviews.Average(r => r.Rating), 2)
                 : 0;
@@ -272,6 +293,9 @@ namespace TimeSaverAPI.Controllers
                 })
                 .ToList();
 
+            var isActivePlus = user.IsPlusSubscriber &&
+                               (user.PlusExpiresAt == null || user.PlusExpiresAt > DateTime.UtcNow);
+
             return Ok(new
             {
                 id                 = user.Id,
@@ -281,12 +305,42 @@ namespace TimeSaverAPI.Controllers
                 phoneNumber        = user.PhoneNumber,
                 userType           = user.UserType.ToString(),
                 isSuspended        = user.IsSuspended,
+                isPlusSubscriber   = isActivePlus,
                 averageRating      = avgRating,
                 reviewCount        = user.ReceivedReviews?.Count ?? 0,
                 completedJobsCount,
                 memberSince        = user.CreatedAt,
                 reviews,
             });
+        }
+
+        // GET: api/Users/me/profile-visitors — Plus users only
+        [HttpGet("me/profile-visitors")]
+        public async Task<IActionResult> GetProfileVisitors()
+        {
+            var user = await _context.Users.FindAsync(CurrentUserId);
+            if (user == null) return NotFound();
+
+            bool isActivePlus = user.IsPlusSubscriber &&
+                                (user.PlusExpiresAt == null || user.PlusExpiresAt > DateTime.UtcNow);
+            if (!isActivePlus)
+                return StatusCode(403, new { message = "Vizitatorii profilului sunt disponibili doar pentru abonații TimeSaver Plus." });
+
+            var since = DateTime.UtcNow.AddDays(-30);
+            var visitors = await _context.ProfileVisits
+                .Where(pv => pv.ProfileUserId == CurrentUserId && pv.VisitedAt >= since)
+                .OrderByDescending(pv => pv.VisitedAt)
+                .Select(pv => new
+                {
+                    visitorUserId = pv.VisitorUserId,
+                    visitorName   = pv.VisitorUser!.Name,
+                    visitorType   = pv.VisitorUser.UserType.ToString(),
+                    visitedAt     = pv.VisitedAt,
+                })
+                .Take(50)
+                .ToListAsync();
+
+            return Ok(visitors);
         }
 
         // GET: api/Users/{id}/public-jobs  — open jobs posted by this user

@@ -41,5 +41,15 @@
         public string? PhoneNumber { get; set; }
         public bool IsSuspended { get; set; }
         public DateTime CreatedAt { get; set; }
+
+        // Plus subscription
+        public bool IsPlusSubscriber { get; set; }
+        public DateTime? PlusActivatedAt { get; set; }
+        public DateTime? PlusExpiresAt { get; set; }
+        public string? StripeCustomerId { get; set; }
+        public string? StripeSubscriptionId { get; set; }
+
+        public virtual ICollection<ProfileVisit>? ProfileVisitsGiven { get; set; }
+        public virtual ICollection<ProfileVisit>? ProfileVisitsReceived { get; set; }
     }
 }

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
-import type { UserProfile, ReviewsResponse } from '../types';
+import { usePlus } from '../context/PlusContext';
+import type { UserProfile, ReviewsResponse, ProfileVisitor } from '../types';
 import './Profile.css';
 
 function renderStars(rating: number) {
@@ -11,8 +13,10 @@ function renderStars(rating: number) {
 
 const Profile: React.FC = () => {
   const { user, login } = useAuth();
+  const { isVerified: isPlusVerified } = usePlus();
   const [profile,     setProfile]     = useState<UserProfile | null>(null);
   const [reviews,     setReviews]     = useState<ReviewsResponse | null>(null);
+  const [visitors,    setVisitors]    = useState<ProfileVisitor[]>([]);
   const [loading,     setLoading]     = useState(true);
   const [editing,     setEditing]     = useState(false);
   const [editForm,    setEditForm]    = useState({ name: '', bio: '', phoneNumber: '' });
@@ -35,7 +39,19 @@ const Profile: React.FC = () => {
     }
   };
 
-  useEffect(() => { fetchData(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const fetchVisitors = async () => {
+    try {
+      const res = await api.get<ProfileVisitor[]>('/Users/me/profile-visitors');
+      setVisitors(res.data);
+    } catch {
+      // non-blocking — user may not be Plus
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    fetchVisitors();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,7 +206,7 @@ const Profile: React.FC = () => {
           )}
         </div>
 
-        {/* ── Right: Reviews ── */}
+        {/* ── Right: Reviews + Profile Visitors ── */}
         <div className="profile-reviews">
           <h2 className="section-title">Recenzii primite</h2>
 
@@ -215,6 +231,45 @@ const Profile: React.FC = () => {
                   {r.comment && <p className="review-comment">"{r.comment}"</p>}
                 </div>
               ))}
+            </div>
+          )}
+
+          {/* ── Profile visitors (Plus only) ── */}
+          <h2 className="section-title" style={{ marginTop: '2rem' }}>👁️ Vizitatori profil</h2>
+          {isPlusVerified ? (
+            visitors.length === 0 ? (
+              <div className="empty-state">
+                <h3>Niciun vizitator în ultimele 30 de zile</h3>
+                <p>Când cineva îți vizitează profilul public, va apărea aici.</p>
+              </div>
+            ) : (
+              <div className="reviews-list">
+                {visitors.map((v, i) => (
+                  <div key={i} className="review-card card" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                    <div className="profile-avatar" style={{ width: 36, height: 36, fontSize: '1rem', flexShrink: 0 }}>
+                      {v.visitorName.charAt(0).toUpperCase()}
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <Link to={`/users/${v.visitorUserId}/profile`} style={{ fontWeight: 600 }}>
+                        {v.visitorName}
+                      </Link>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {v.visitorType === 'Worker' ? 'Prestator' : 'Angajator'} ·{' '}
+                        {new Date(v.visitedAt).toLocaleDateString('ro-RO')}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )
+          ) : (
+            <div className="empty-state" style={{ border: '2px dashed #fcd34d', background: '#fffbeb' }}>
+              <div style={{ fontSize: '2rem' }}>⭐</div>
+              <h3>Funcție Plus</h3>
+              <p>Activează TimeSaver Plus pentru a vedea cine ți-a vizitat profilul în ultimele 30 de zile.</p>
+              <Link to="/plus" className="btn btn-primary" style={{ marginTop: '0.75rem' }}>
+                Activează Plus
+              </Link>
             </div>
           )}
         </div>

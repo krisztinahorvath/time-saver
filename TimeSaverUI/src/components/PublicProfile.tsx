@@ -239,7 +239,12 @@ const PublicProfile: React.FC = () => {
               )}
             </div>
 
-            <h2 className="pp-name">{profile.name}</h2>
+            <h2 className="pp-name">
+              {profile.name}
+              {profile.isPlusSubscriber && (
+                <span className="pp-plus-badge" title="TimeSaver Plus verificat">⭐</span>
+              )}
+            </h2>
             <div className="pp-role-badge">
               {isWorkerProfile ? '🔧 Prestator' : '📋 Angajator'}
             </div>

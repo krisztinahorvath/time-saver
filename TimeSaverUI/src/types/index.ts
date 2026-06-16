@@ -98,12 +98,29 @@ export interface PublicProfile {
   avatarUrl?: string | null;
   phoneNumber?: string | null;
   userType: UserType;
+  isPlusSubscriber?: boolean;
   averageRating: number;
   reviewCount: number;
   completedJobsCount: number;
   memberSince: string;
   reviews: ReviewItem[];
   isSuspended?: boolean;
+}
+
+export interface PlusStatus {
+  isPlusSubscriber: boolean;
+  isVerified: boolean;
+  plusActivatedAt: string | null;
+  plusExpiresAt: string | null;
+  hasStripeSubscription: boolean;
+  statusMessage: string;
+}
+
+export interface ProfileVisitor {
+  visitorUserId: number;
+  visitorName: string;
+  visitorType: UserType;
+  visitedAt: string;
 }
 
 export interface JobPostImage {
@@ -179,6 +196,7 @@ export interface JobPostListItem {
   mainImageUrl?: string;
   latitude?: number | null;
   longitude?: number | null;
+  isPlusOnly?: boolean;
 }
 
 export interface PagedResult<T> {
@@ -251,6 +269,7 @@ export interface CreateJobPostPayload {
   specialRequirements?: string;
   latitude?: number | null;
   longitude?: number | null;
+  isPlusOnly?: boolean;
 }
 
 export const CATEGORY_LABELS: Record<JobCategory, string> = {

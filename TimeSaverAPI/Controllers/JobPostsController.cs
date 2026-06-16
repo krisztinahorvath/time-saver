@@ -28,6 +28,10 @@ namespace TimeSaverAPI.Controllers
         private long CurrentUserId =>
             long.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
 
+        private static bool IsActivePlus(Models.User user) =>
+            user.IsPlusSubscriber &&
+            (user.PlusExpiresAt == null || user.PlusExpiresAt > DateTime.UtcNow);
+
         // GET: api/JobPosts
         [HttpGet]
         public async Task<IActionResult> GetJobPosts(
@@ -40,7 +44,15 @@ namespace TimeSaverAPI.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 12)
         {
+            // Determine Plus status of current user for filtering
+            var currentUser = await _context.Users.FindAsync(CurrentUserId);
+            var callerIsPlus = currentUser != null && IsActivePlus(currentUser);
+
             var query = _context.JobPosts.Where(j => j.Status == JobStatus.Open);
+
+            // Hide Plus-only jobs from free users
+            if (!callerIsPlus)
+                query = query.Where(j => !j.IsPlusOnly);
 
             if (!string.IsNullOrWhiteSpace(keyword))
                 query = query.Where(j => j.Title.Contains(keyword) || j.Description.Contains(keyword));
@@ -101,6 +113,7 @@ namespace TimeSaverAPI.Controllers
                     MainImageUrl        = mainImg?.ImageUrl,
                     Latitude            = j.Latitude,
                     Longitude           = j.Longitude,
+                    IsPlusOnly          = j.IsPlusOnly,
                 };
             }).ToList();
 
@@ -141,6 +154,26 @@ namespace TimeSaverAPI.Controllers
 
             if (jobPost == null) return NotFound();
 
+            // Enforce Plus-only visibility
+            if (jobPost.IsPlusOnly)
+            {
+                var caller = await _context.Users.FindAsync(CurrentUserId);
+                bool callerIsPlus = caller != null && IsActivePlus(caller);
+                bool isOwner  = jobPost.UserId == CurrentUserId;
+                bool isAdmin  = caller?.UserType == UserType.Admin;
+                if (!callerIsPlus && !isOwner && !isAdmin)
+                    return StatusCode(403, new { message = "Acest job este disponibil doar pentru abonații TimeSaver Plus." });
+            }
+
+            // Sort applications: Plus subscribers appear first
+            if (jobPost.JobApplications?.Any() == true)
+            {
+                jobPost.JobApplications = jobPost.JobApplications
+                    .OrderByDescending(a => a.User?.IsPlusSubscriber == true)
+                    .ThenBy(a => a.CreatedAt)
+                    .ToList();
+            }
+
             return jobPost;
         }
 
@@ -148,6 +181,13 @@ namespace TimeSaverAPI.Controllers
         [HttpPost]
         public async Task<ActionResult<JobPost>> PostJobPost(CreateJobPostDto dto)
         {
+            if (dto.IsPlusOnly)
+            {
+                var poster = await _context.Users.FindAsync(CurrentUserId);
+                if (poster == null || !IsActivePlus(poster))
+                    return BadRequest(new { message = "Doar abonații TimeSaver Plus pot posta joburi Plus Matching." });
+            }
+
             var jobPost = new JobPost
             {
                 Title               = dto.Title,
@@ -159,6 +199,7 @@ namespace TimeSaverAPI.Controllers
                 SpecialRequirements = dto.SpecialRequirements,
                 Latitude            = dto.Latitude,
                 Longitude           = dto.Longitude,
+                IsPlusOnly          = dto.IsPlusOnly,
                 Status              = JobStatus.Open,
                 CreatedAt           = DateTime.UtcNow,
                 UserId              = CurrentUserId

@@ -1,0 +1,98 @@
+.plus-page { max-width: 860px; margin: 0 auto; }
+
+.plus-hero {
+  text-align: center;
+  padding: 3rem 1rem 2rem;
+}
+
+.plus-badge-large { font-size: 3.5rem; line-height: 1; }
+
+.plus-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin: 0.5rem 0 0.25rem;
+  color: var(--text);
+}
+
+.plus-label {
+  color: #f59e0b;
+}
+
+.plus-subtitle {
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+/* Status card */
+.plus-status-card {
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.plus-status-card.plus-active {
+  border: 2px solid #f59e0b;
+  background: #fffbeb;
+}
+
+.plus-status-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.plus-expires { color: var(--text-muted); font-size: 0.9rem; }
+
+/* CTA */
+.plus-cta-card {
+  padding: 2rem;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.plus-price-hint {
+  color: var(--text-muted);
+  margin-bottom: 1.5rem;
+}
+
+.btn-plus-activate {
+  font-size: 1.1rem;
+  padding: 0.8rem 2.5rem;
+  background: #f59e0b;
+  border-color: #f59e0b;
+  color: #fff;
+}
+
+.btn-plus-activate:hover:not(:disabled) {
+  background: #d97706;
+  border-color: #d97706;
+}
+
+.plus-stripe-note {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-top: 0.75rem;
+}
+
+/* Features */
+.plus-features { margin-bottom: 2rem; }
+.plus-features h2 { margin-bottom: 1rem; }
+
+.plus-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+}
+
+.plus-feature-card {
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.plus-feature-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.plus-feature-card h3 { font-size: 1rem; margin-bottom: 0.4rem; }
+.plus-feature-card p { font-size: 0.85rem; color: var(--text-muted); }
+
+.plus-free-note {
+  text-align: center;
+  padding: 1rem 0 2rem;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}

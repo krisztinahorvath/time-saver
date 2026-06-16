@@ -291,14 +291,21 @@ const ExploreJobs: React.FC = () => {
                         </div>
                       )}
 
-                      {/* Top: category + status */}
+                      {/* Top: category + status + Plus badge */}
                       <div className="jc-top">
                         <span className="jc-category">
                           {CATEGORY_ICONS[job.category]} {CATEGORY_LABELS[job.category] ?? job.category}
                         </span>
-                        <span className={`badge badge-${job.status.toLowerCase()}`}>
-                          {STATUS_LABELS[job.status] ?? job.status}
-                        </span>
+                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                          {job.isPlusOnly && (
+                            <span className="badge-plus-only" title="Job Plus Matching — exclusiv pentru abonații Plus">
+                              ⭐ Plus
+                            </span>
+                          )}
+                          <span className={`badge badge-${job.status.toLowerCase()}`}>
+                            {STATUS_LABELS[job.status] ?? job.status}
+                          </span>
+                        </div>
                       </div>
 
                       <Link to={`/jobs/${job.id}`} className="jc-title">{job.title}</Link>
