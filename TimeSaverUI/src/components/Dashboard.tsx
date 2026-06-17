@@ -7,6 +7,8 @@ import type { JobPost, JobApplication, GivenReviewEntry } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
+import PlusBadge from './PlusBadge';
+import PaymentStatusBadge from './PaymentStatusBadge';
 import './Dashboard.css';
 
 function statusBadge(status: string) {
@@ -95,22 +97,6 @@ const EmployerDashboard: React.FC = () => {
         }
       },
       { confirmLabel: 'Acceptă', danger: false }
-    );
-  };
-
-  const completeJob = (jobId: number) => {
-    showConfirm(
-      'Marchezi jobul ca finalizat? Acțiunea nu poate fi anulată.',
-      async () => {
-        try {
-          await api.put(`/JobPosts/${jobId}/complete`);
-          setMsg({ text: 'Job marcat ca finalizat!', type: 'success' });
-          await fetchJobs();
-        } catch (e) {
-          setMsg({ text: extractApiError(e, 'Eroare la finalizare.'), type: 'error' });
-        }
-      },
-      { confirmLabel: 'Finalizează', danger: false }
     );
   };
 
@@ -212,11 +198,19 @@ const EmployerDashboard: React.FC = () => {
                       <span>🏷️ {CATEGORY_LABELS[job.category] ?? job.category}</span>
                     </div>
                   </div>
-                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
                     {job.status === 'InProgress' && (
-                      <button className="btn btn-success btn-sm" onClick={() => completeJob(job.id)}>
-                        ✓ Finalizează
-                      </button>
+                      <>
+                        {job.payment?.status === 'PaidHeld' && (
+                          <PaymentStatusBadge status="PaidHeld" />
+                        )}
+                        {(!job.payment || job.payment.status === 'NotStarted' || job.payment.status === 'CheckoutPending') && (
+                          <Link to={`/jobs/${job.id}`} className="btn btn-primary btn-sm">💳 Plătește</Link>
+                        )}
+                        {job.payment?.status === 'ReleasedToWorker' && (
+                          <PaymentStatusBadge status="ReleasedToWorker" workerAmount={job.payment.workerAmount} hasTransfer={!!job.payment.stripeTransferId} />
+                        )}
+                      </>
                     )}
                     <Link to={`/jobs/${job.id}`} className="btn btn-outline btn-sm">Gestionează</Link>
                   </div>
@@ -233,6 +227,7 @@ const EmployerDashboard: React.FC = () => {
                             <div className="app-info">
                               <div className="app-user">
                                 <Link to={`/users/${app.userId}/profile`}>👤 {app.user?.name ?? `User #${app.userId}`}</Link>
+                                {app.user?.isPlusSubscriber && <PlusBadge size="sm" />}
                                 {appBadge(app.jobApplicationStatus)}
                               </div>
                               <p className="app-msg">"{app.message}"</p>
@@ -311,10 +306,8 @@ const EmployerDashboard: React.FC = () => {
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  {job.status === 'InProgress' && (
-                    <button className="btn btn-success btn-sm" onClick={() => completeJob(job.id)}>
-                      ✓ Finalizează
-                    </button>
+                  {job.status === 'InProgress' && job.payment?.status === 'PaidHeld' && (
+                    <PaymentStatusBadge status="PaidHeld" />
                   )}
                   <Link to={`/jobs/${job.id}`} className="btn btn-ghost btn-sm">Detalii</Link>
                 </div>
@@ -331,6 +324,7 @@ const EmployerDashboard: React.FC = () => {
                         <div className="app-info">
                           <div className="app-user">
                             <Link to={`/users/${app.userId}/profile`}>👤 {app.user?.name ?? `User #${app.userId}`}</Link>
+                            {app.user?.isPlusSubscriber && <PlusBadge size="sm" />}
                             {appBadge(app.jobApplicationStatus)}
                           </div>
                           <p className="app-msg">"{app.message}"</p>

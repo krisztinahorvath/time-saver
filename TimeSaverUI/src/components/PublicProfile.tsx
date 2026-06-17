@@ -6,6 +6,7 @@ import { CATEGORY_LABELS, CATEGORY_ICONS } from '../types';
 import { useAuth } from '../context/AuthContext';
 import ReportModal from './ReportModal';
 import ContactModal from './ContactModal';
+import PlusBadge from './PlusBadge';
 import './PublicProfile.css';
 
 function renderStars(rating: number, size: 'sm' | 'md' | 'lg' = 'md') {
@@ -420,7 +421,10 @@ const PublicProfile: React.FC = () => {
                             {(r.reviewerName ?? '?').charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="pp-review-author">{r.reviewerName ?? 'Utilizator'}</div>
+                            <div className="pp-review-author" style={{ display: 'flex', alignItems: 'center' }}>
+                              {r.reviewerName ?? 'Utilizator'}
+                              {r.reviewerIsPlusSubscriber && <PlusBadge size="sm" />}
+                            </div>
                             <div className="pp-review-date">
                               {new Date(r.createdAt).toLocaleDateString('ro-RO', { day: 'numeric', month: 'long', year: 'numeric' })}
                             </div>

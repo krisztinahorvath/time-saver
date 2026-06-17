@@ -80,6 +80,11 @@ namespace TimeSaverAPI.Controllers
                         Quantity = 1,
                     }
                 ],
+                Metadata   = new Dictionary<string, string>
+                {
+                    ["purpose"] = "plus_subscription",
+                    ["userId"]  = user.Id.ToString(),
+                },
                 SuccessUrl = $"{baseUrl}/plus/success?session_id={{CHECKOUT_SESSION_ID}}",
                 CancelUrl  = $"{baseUrl}/plus/cancel",
             };

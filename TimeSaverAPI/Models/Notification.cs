@@ -7,6 +7,8 @@ namespace TimeSaverAPI.Models
         NewMessage = 2,
         NewReview = 3,
         JobCompleted = 4,
+        PaymentHeld = 5,
+        PaymentReleased = 6,
     }
 
     public class Notification

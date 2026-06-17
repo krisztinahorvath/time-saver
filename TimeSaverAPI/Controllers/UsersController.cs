@@ -191,17 +191,21 @@ namespace TimeSaverAPI.Controllers
                 ? Math.Round(user.ReceivedReviews.Average(r => r.Rating), 2)
                 : 0;
 
+            var isActivePlus = user.IsPlusSubscriber &&
+                               (user.PlusExpiresAt == null || user.PlusExpiresAt > DateTime.UtcNow);
+
             return Ok(new
             {
-                id            = user.Id,
-                name          = user.Name,
-                email         = user.Email,
-                bio           = user.Bio,
-                avatarUrl     = user.AvatarUrl,
-                phoneNumber   = user.PhoneNumber,
-                userType      = user.UserType.ToString(),
-                averageRating = avgRating,
-                reviewCount   = user.ReceivedReviews?.Count ?? 0,
+                id               = user.Id,
+                name             = user.Name,
+                email            = user.Email,
+                bio              = user.Bio,
+                avatarUrl        = user.AvatarUrl,
+                phoneNumber      = user.PhoneNumber,
+                userType         = user.UserType.ToString(),
+                averageRating    = avgRating,
+                reviewCount      = user.ReceivedReviews?.Count ?? 0,
+                isPlusSubscriber = isActivePlus,
             });
         }
 
@@ -284,12 +288,15 @@ namespace TimeSaverAPI.Controllers
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new
                 {
-                    id             = r.Id,
-                    rating         = r.Rating,
-                    comment        = r.Comment,
-                    createdAt      = r.CreatedAt,
-                    reviewerUserId = r.ReviewerUserId,
-                    reviewerName   = r.ReviewerUser?.Name,
+                    id                       = r.Id,
+                    rating                   = r.Rating,
+                    comment                  = r.Comment,
+                    createdAt                = r.CreatedAt,
+                    reviewerUserId           = r.ReviewerUserId,
+                    reviewerName             = r.ReviewerUser?.Name,
+                    reviewerIsPlusSubscriber = r.ReviewerUser != null &&
+                                              r.ReviewerUser.IsPlusSubscriber &&
+                                              (r.ReviewerUser.PlusExpiresAt == null || r.ReviewerUser.PlusExpiresAt > DateTime.UtcNow),
                 })
                 .ToList();
 
@@ -332,10 +339,12 @@ namespace TimeSaverAPI.Controllers
                 .OrderByDescending(pv => pv.VisitedAt)
                 .Select(pv => new
                 {
-                    visitorUserId = pv.VisitorUserId,
-                    visitorName   = pv.VisitorUser!.Name,
-                    visitorType   = pv.VisitorUser.UserType.ToString(),
-                    visitedAt     = pv.VisitedAt,
+                    visitorUserId           = pv.VisitorUserId,
+                    visitorName             = pv.VisitorUser!.Name,
+                    visitorType             = pv.VisitorUser.UserType.ToString(),
+                    visitedAt               = pv.VisitedAt,
+                    isPlusSubscriber        = pv.VisitorUser.IsPlusSubscriber &&
+                                             (pv.VisitorUser.PlusExpiresAt == null || pv.VisitorUser.PlusExpiresAt > DateTime.UtcNow),
                 })
                 .Take(50)
                 .ToListAsync();

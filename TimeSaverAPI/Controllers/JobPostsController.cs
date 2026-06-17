@@ -130,14 +130,26 @@ namespace TimeSaverAPI.Controllers
         [HttpGet("mine")]
         public async Task<ActionResult<IEnumerable<JobPost>>> GetMyJobPosts()
         {
-            return await _context.JobPosts
+            var jobs = await _context.JobPosts
                 .Include(j => j.Images)
                 .Include(j => j.JobApplications)
                     .ThenInclude(a => a.User)
                 .Include(j => j.AcceptedByUser)
+                .Include(j => j.Payment)
                 .Where(j => j.UserId == CurrentUserId)
                 .OrderByDescending(j => j.CreatedAt)
                 .ToListAsync();
+
+            // Sort applicants Plus-first, then by application date
+            foreach (var job in jobs)
+            {
+                job.JobApplications = job.JobApplications
+                    .OrderByDescending(a => a.User != null && IsActivePlus(a.User))
+                    .ThenBy(a => a.CreatedAt)
+                    .ToList();
+            }
+
+            return jobs;
         }
 
         // GET: api/JobPosts/5
@@ -150,6 +162,7 @@ namespace TimeSaverAPI.Controllers
                 .Include(j => j.JobApplications)
                     .ThenInclude(a => a.User)
                 .Include(j => j.AcceptedByUser)
+                .Include(j => j.Payment)
                 .FirstOrDefaultAsync(j => j.Id == id);
 
             if (jobPost == null) return NotFound();

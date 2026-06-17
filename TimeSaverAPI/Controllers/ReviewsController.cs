@@ -118,12 +118,15 @@ namespace TimeSaverAPI.Controllers
                 .OrderByDescending(r => r.CreatedAt)
                 .Select(r => new
                 {
-                    id             = r.Id,
-                    rating         = r.Rating,
-                    comment        = r.Comment,
-                    createdAt      = r.CreatedAt,
-                    reviewerUserId = r.ReviewerUserId,
-                    reviewerName   = r.ReviewerUser != null ? r.ReviewerUser.Name : null
+                    id                       = r.Id,
+                    rating                   = r.Rating,
+                    comment                  = r.Comment,
+                    createdAt                = r.CreatedAt,
+                    reviewerUserId           = r.ReviewerUserId,
+                    reviewerName             = r.ReviewerUser != null ? r.ReviewerUser.Name : null,
+                    reviewerIsPlusSubscriber = r.ReviewerUser != null &&
+                                              r.ReviewerUser.IsPlusSubscriber &&
+                                              (r.ReviewerUser.PlusExpiresAt == null || r.ReviewerUser.PlusExpiresAt > DateTime.UtcNow),
                 })
                 .ToListAsync();
 

@@ -1,0 +1,202 @@
+/* ── Billing layout ── */
+.billing-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+/* ── Sidebar ── */
+.billing-sidebar {
+  position: sticky;
+  top: 80px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem 0;
+  box-shadow: var(--shadow-sm);
+}
+
+.billing-sidebar-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-muted);
+  padding: 0 1.2rem 0.75rem;
+  margin: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.billing-sidebar a {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.65rem 1.2rem;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.billing-sidebar a:hover {
+  background: var(--background);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.billing-sidebar a.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  font-weight: 700;
+}
+
+/* ── Content area ── */
+.billing-content { min-width: 0; }
+
+/* ── Balance card ── */
+.billing-balance-card {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark, #1a56d6));
+  color: #fff;
+  border-radius: var(--radius);
+  padding: 2rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 20px rgba(37,99,235,0.25);
+}
+
+.billing-balance-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+  margin-bottom: 0.4rem;
+}
+
+.billing-balance-amount {
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.billing-balance-currency {
+  font-size: 0.85rem;
+  opacity: 0.75;
+}
+
+.billing-quick-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+
+.billing-quick-actions .btn {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+  font-size: 0.84rem;
+}
+
+.billing-quick-actions .btn:hover {
+  background: rgba(255,255,255,0.25);
+  color: #fff;
+}
+
+/* ── Recent transactions ── */
+.billing-tx-list { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.billing-tx-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  background: var(--background);
+  border-radius: var(--radius);
+  gap: 0.75rem;
+}
+
+.billing-tx-icon { font-size: 1.2rem; flex-shrink: 0; }
+
+.billing-tx-info { flex: 1; min-width: 0; }
+.billing-tx-desc { font-size: 0.88rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.billing-tx-date { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+
+.billing-tx-amount { font-weight: 700; white-space: nowrap; }
+.billing-tx-amount.positive { color: var(--success, #16a34a); }
+.billing-tx-amount.negative { color: var(--danger, #dc2626); }
+
+/* ── Invoice list ── */
+.billing-invoice-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.billing-invoice-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  flex-wrap: wrap;
+}
+
+.billing-invoice-num  { font-weight: 700; font-size: 0.9rem; }
+.billing-invoice-date { font-size: 0.8rem; color: var(--text-muted); }
+.billing-invoice-amount { font-weight: 700; font-size: 1rem; }
+.billing-invoice-actions { display: flex; gap: 0.5rem; }
+
+/* ── TopUp form ── */
+.billing-topup-form {
+  max-width: 480px;
+}
+
+.billing-amount-presets {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+
+.billing-amount-preset {
+  padding: 0.45rem 1rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--background);
+  cursor: pointer;
+  color: var(--text);
+  transition: border-color var(--transition), background var(--transition);
+}
+
+.billing-amount-preset:hover,
+.billing-amount-preset.selected {
+  border-color: var(--primary);
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* ── Business billing info ── */
+.billing-biz-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.billing-biz-card {
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.billing-biz-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.billing-biz-title { font-size: 0.95rem; font-weight: 700; margin-bottom: 0.3rem; }
+.billing-biz-desc  { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+/* ── Responsive ── */
+@media (max-width: 720px) {
+  .billing-layout { grid-template-columns: 1fr; }
+  .billing-sidebar { position: static; display: flex; flex-wrap: wrap; padding: 0.5rem; gap: 0; }
+  .billing-sidebar-title { display: none; }
+  .billing-sidebar a { padding: 0.5rem 0.8rem; flex: none; font-size: 0.82rem; }
+}

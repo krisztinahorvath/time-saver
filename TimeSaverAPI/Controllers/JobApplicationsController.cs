@@ -32,6 +32,7 @@ namespace TimeSaverAPI.Controllers
         {
             return await _context.JobApplications
                 .Include(a => a.JobPost)
+                    .ThenInclude(j => j.Payment)
                 .Where(a => a.UserId == CurrentUserId)
                 .ToListAsync();
         }

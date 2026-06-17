@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { usePlus } from '../context/PlusContext';
 import NotificationBell from './NotificationBell';
+import PlusBadge from './PlusBadge';
 import './Navbar.css';
 
 const Navbar: React.FC = () => {
@@ -160,7 +161,10 @@ const Navbar: React.FC = () => {
                 {profileOpen && (
                   <div className="navbar-dropdown" onClick={() => setProfileOpen(false)}>
                     <div className="navbar-dropdown-header">
-                      <div className="navbar-dropdown-name">{user?.name}</div>
+                      <div className="navbar-dropdown-name" style={{ display: 'flex', alignItems: 'center' }}>
+                        {user?.name}
+                        {isPlusVerified && <PlusBadge size="sm" />}
+                      </div>
                       <div className="navbar-dropdown-role">
                         {user?.userType === 'Worker'
                           ? 'Prestator'
@@ -172,6 +176,7 @@ const Navbar: React.FC = () => {
                     <div className="navbar-dropdown-divider" />
                     <Link to="/profile"       className="navbar-dropdown-item">👤 Profilul meu</Link>
                     <Link to="/notifications" className="navbar-dropdown-item">🔔 Notificări</Link>
+                    <Link to="/billing"       className="navbar-dropdown-item">💳 Plăți și facturare</Link>
                     {isAdmin && (
                       <Link to="/admin"       className="navbar-dropdown-item">⚙ Panou admin</Link>
                     )}

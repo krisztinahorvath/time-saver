@@ -3,14 +3,16 @@ import api from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
 import type { Message } from '../types';
+import PlusBadge from './PlusBadge';
 import './Chat.css';
 
 interface ChatProps {
   jobPostId: number;
   otherPartyName: string;
+  otherPartyIsPlus?: boolean;
 }
 
-const Chat: React.FC<ChatProps> = ({ jobPostId, otherPartyName }) => {
+const Chat: React.FC<ChatProps> = ({ jobPostId, otherPartyName, otherPartyIsPlus }) => {
   const { user } = useAuth();
   const [messages, setMessages] = useState<Message[]>([]);
   const [text, setText] = useState('');
@@ -75,7 +77,10 @@ const Chat: React.FC<ChatProps> = ({ jobPostId, otherPartyName }) => {
   return (
     <div className="chat-wrap card">
       <div className="chat-header">
-        <span>💬 Conversație cu <strong>{otherPartyName}</strong></span>
+        <span>
+          💬 Conversație cu <strong>{otherPartyName}</strong>
+          {otherPartyIsPlus && <PlusBadge size="sm" className="chat-plus-badge" />}
+        </span>
         <button className="chat-refresh" onClick={fetchMessages} title="Actualizează">↻</button>
       </div>
 

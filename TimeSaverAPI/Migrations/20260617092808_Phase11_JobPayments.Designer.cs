@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TimeSaverAPI.Data;
 
@@ -11,9 +12,11 @@ using TimeSaverAPI.Data;
 namespace TimeSaverAPI.Migrations
 {
     [DbContext(typeof(TimeSaverContext))]
-    partial class TimeSaverContextModelSnapshot : ModelSnapshot
+    [Migration("20260617092808_Phase11_JobPayments")]
+    partial class Phase11_JobPayments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -167,9 +170,6 @@ namespace TimeSaverAPI.Migrations
                     b.Property<DateTime?>("PaidAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("PaymentSource")
-                        .HasColumnType("int");
-
                     b.Property<decimal?>("PlatformFeeAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
@@ -188,9 +188,6 @@ namespace TimeSaverAPI.Migrations
 
                     b.Property<string>("StripePaymentIntentId")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("StripeTopUpChargeId")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StripeTransferId")
                         .HasColumnType("nvarchar(max)");
@@ -412,17 +409,11 @@ namespace TimeSaverAPI.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("StripeChargeId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("StripePaymentIntentId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StripeSessionId")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<long?>("TopUpTransactionId")
-                        .HasColumnType("bigint");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -434,11 +425,7 @@ namespace TimeSaverAPI.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.HasIndex("StripeChargeId");
-
                     b.HasIndex("StripeSessionId");
-
-                    b.HasIndex("TopUpTransactionId");
 
                     b.HasIndex("UserId");
 
@@ -789,17 +776,11 @@ namespace TimeSaverAPI.Migrations
 
             modelBuilder.Entity("TimeSaverAPI.Models.PaymentTransaction", b =>
                 {
-                    b.HasOne("TimeSaverAPI.Models.PaymentTransaction", "TopUpTransaction")
-                        .WithMany()
-                        .HasForeignKey("TopUpTransactionId");
-
                     b.HasOne("TimeSaverAPI.Models.User", "User")
                         .WithMany("PaymentTransactions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("TopUpTransaction");
 
                     b.Navigation("User");
                 });

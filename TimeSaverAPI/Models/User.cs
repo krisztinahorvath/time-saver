@@ -51,5 +51,13 @@
 
         public virtual ICollection<ProfileVisit>? ProfileVisitsGiven { get; set; }
         public virtual ICollection<ProfileVisit>? ProfileVisitsReceived { get; set; }
+
+        // Billing
+        public virtual BillingProfile? BillingProfile { get; set; }
+        public virtual ICollection<PaymentTransaction>? PaymentTransactions { get; set; }
+
+        // Stripe Connect (worker payouts)
+        public string? StripeConnectAccountId { get; set; }
+        public bool StripeConnectOnboardingComplete { get; set; }
     }
 }

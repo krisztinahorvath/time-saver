@@ -1,0 +1,12 @@
+.plus-badge {
+  display: inline-block;
+  color: #f59e0b;
+  vertical-align: middle;
+  cursor: default;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.plus-badge-sm { font-size: 0.75rem; margin-left: 0.2rem; }
+.plus-badge-md { font-size: 0.9rem;  margin-left: 0.3rem; }
+.plus-badge-lg { font-size: 1.1rem;  margin-left: 0.4rem; }

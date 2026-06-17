@@ -20,10 +20,19 @@ import AdminDashboard    from './components/AdminDashboard';
 import AdminUsers        from './components/AdminUsers';
 import AdminJobs         from './components/AdminJobs';
 import AdminReports      from './components/AdminReports';
-import PlusPage           from './components/PlusPage';
-import PlusSuccess        from './components/PlusSuccess';
-import PlusCancel         from './components/PlusCancel';
-import NotFound           from './components/NotFound';
+import PlusPage              from './components/PlusPage';
+import PlusSuccess           from './components/PlusSuccess';
+import PlusCancel            from './components/PlusCancel';
+import BillingLayout         from './components/BillingLayout';
+import BillingPage           from './components/BillingPage';
+import PaymentMethodsPage    from './components/PaymentMethodsPage';
+import TopUpPage             from './components/TopUpPage';
+import TopUpSuccessPage      from './components/TopUpSuccessPage';
+import TopUpCancelPage       from './components/TopUpCancelPage';
+import InvoicesPage          from './components/InvoicesPage';
+import BusinessBillingPage        from './components/BusinessBillingPage';
+import BillingConnectReturnPage   from './components/BillingConnectReturnPage';
+import NotFound                   from './components/NotFound';
 
 // Redirects to /login and saves the intended path so Login can restore it.
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -83,6 +92,21 @@ function App() {
       <Route path="/plus/cancel" element={
         <ProtectedRoute><Layout><PlusCancel /></Layout></ProtectedRoute>
       } />
+
+      {/* Billing — nested routes share the BillingLayout (sidebar) */}
+      <Route path="/billing" element={
+        <ProtectedRoute><Layout><BillingLayout /></Layout></ProtectedRoute>
+      }>
+        <Route index                    element={<BillingPage />} />
+        <Route path="payment-methods"  element={<PaymentMethodsPage />} />
+        <Route path="top-up"           element={<TopUpPage />} />
+        <Route path="topup-success"    element={<TopUpSuccessPage />} />
+        <Route path="topup-cancel"     element={<TopUpCancelPage />} />
+        <Route path="invoices"         element={<InvoicesPage />} />
+        <Route path="business"         element={<BusinessBillingPage />} />
+        <Route path="connect/return"   element={<BillingConnectReturnPage />} />
+        <Route path="connect/refresh"  element={<BillingConnectReturnPage />} />
+      </Route>
 
       {/* Protected */}
       <Route path="/dashboard" element={

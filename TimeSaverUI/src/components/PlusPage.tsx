@@ -88,11 +88,19 @@ const PlusPage: React.FC = () => {
               <strong>Prestatori:</strong> accesează joburi premium rezervate Plus.
             </p>
           </div>
+          <div className="plus-feature-card card">
+            <div className="plus-feature-icon">💸</div>
+            <h3>0% comision pe câștiguri</h3>
+            <p>
+              Prestatorii <strong>Plus păstrează 100%</strong> din câștiguri — fără comision de platformă.<br />
+              Prestatorii Free plătesc <strong>5% comision</strong> standard per task.
+            </p>
+          </div>
         </div>
       </div>
 
       <div className="plus-free-note">
-        <p>Utilizatorii gratuiți păstrează accesul la toate funcționalitățile de bază ale marketplace-ului.</p>
+        <p>Utilizatorii gratuiți păstrează accesul la toate funcționalitățile de bază ale marketplace-ului și pot presta taskuri cu un comision standard de 5%.</p>
         <Link to="/dashboard" className="btn btn-ghost btn-sm">Înapoi la Dashboard</Link>
       </div>
     </div>

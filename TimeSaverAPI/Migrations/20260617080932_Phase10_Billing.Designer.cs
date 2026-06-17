@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using TimeSaverAPI.Data;
 
@@ -11,9 +12,11 @@ using TimeSaverAPI.Data;
 namespace TimeSaverAPI.Migrations
 {
     [DbContext(typeof(TimeSaverContext))]
-    partial class TimeSaverContextModelSnapshot : ModelSnapshot
+    [Migration("20260617080932_Phase10_Billing")]
+    partial class Phase10_Billing
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -137,85 +140,6 @@ namespace TimeSaverAPI.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("JobApplications");
-                });
-
-            modelBuilder.Entity("TimeSaverAPI.Models.JobPayment", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Currency")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<long>("EmployerId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("JobPostId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime?>("PaidAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("PaymentSource")
-                        .HasColumnType("int");
-
-                    b.Property<decimal?>("PlatformFeeAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime?>("RefundedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ReleasedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<string>("StripeCheckoutSessionId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("StripePaymentIntentId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("StripeTopUpChargeId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("StripeTransferId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal?>("WorkerAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<long?>("WorkerId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("EmployerId");
-
-                    b.HasIndex("JobPostId")
-                        .IsUnique();
-
-                    b.HasIndex("StripeCheckoutSessionId");
-
-                    b.HasIndex("StripePaymentIntentId");
-
-                    b.HasIndex("WorkerId");
-
-                    b.ToTable("JobPayments");
                 });
 
             modelBuilder.Entity("TimeSaverAPI.Models.JobPost", b =>
@@ -412,17 +336,11 @@ namespace TimeSaverAPI.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("StripeChargeId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<string>("StripePaymentIntentId")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StripeSessionId")
                         .HasColumnType("nvarchar(450)");
-
-                    b.Property<long?>("TopUpTransactionId")
-                        .HasColumnType("bigint");
 
                     b.Property<int>("Type")
                         .HasColumnType("int");
@@ -434,11 +352,7 @@ namespace TimeSaverAPI.Migrations
 
                     b.HasIndex("CreatedAt");
 
-                    b.HasIndex("StripeChargeId");
-
                     b.HasIndex("StripeSessionId");
-
-                    b.HasIndex("TopUpTransactionId");
 
                     b.HasIndex("UserId");
 
@@ -644,12 +558,6 @@ namespace TimeSaverAPI.Migrations
                     b.Property<DateTime?>("PlusExpiresAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("StripeConnectAccountId")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("StripeConnectOnboardingComplete")
-                        .HasColumnType("bit");
-
                     b.Property<string>("StripeCustomerId")
                         .HasColumnType("nvarchar(max)");
 
@@ -703,30 +611,6 @@ namespace TimeSaverAPI.Migrations
                     b.Navigation("JobPost");
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("TimeSaverAPI.Models.JobPayment", b =>
-                {
-                    b.HasOne("TimeSaverAPI.Models.User", "Employer")
-                        .WithMany()
-                        .HasForeignKey("EmployerId")
-                        .IsRequired();
-
-                    b.HasOne("TimeSaverAPI.Models.JobPost", "JobPost")
-                        .WithOne("Payment")
-                        .HasForeignKey("TimeSaverAPI.Models.JobPayment", "JobPostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("TimeSaverAPI.Models.User", "Worker")
-                        .WithMany()
-                        .HasForeignKey("WorkerId");
-
-                    b.Navigation("Employer");
-
-                    b.Navigation("JobPost");
-
-                    b.Navigation("Worker");
                 });
 
             modelBuilder.Entity("TimeSaverAPI.Models.JobPost", b =>
@@ -789,17 +673,11 @@ namespace TimeSaverAPI.Migrations
 
             modelBuilder.Entity("TimeSaverAPI.Models.PaymentTransaction", b =>
                 {
-                    b.HasOne("TimeSaverAPI.Models.PaymentTransaction", "TopUpTransaction")
-                        .WithMany()
-                        .HasForeignKey("TopUpTransactionId");
-
                     b.HasOne("TimeSaverAPI.Models.User", "User")
                         .WithMany("PaymentTransactions")
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("TopUpTransaction");
 
                     b.Navigation("User");
                 });
@@ -893,8 +771,6 @@ namespace TimeSaverAPI.Migrations
                     b.Navigation("JobApplications");
 
                     b.Navigation("Messages");
-
-                    b.Navigation("Payment");
                 });
 
             modelBuilder.Entity("TimeSaverAPI.Models.User", b =>

@@ -22,6 +22,9 @@ namespace TimeSaverAPI.Data
         public virtual DbSet<Report> Reports { get; set; }
         public virtual DbSet<AuditLog> AuditLogs { get; set; }
         public virtual DbSet<ProfileVisit> ProfileVisits { get; set; }
+        public virtual DbSet<BillingProfile> BillingProfiles { get; set; }
+        public virtual DbSet<PaymentTransaction> PaymentTransactions { get; set; }
+        public virtual DbSet<JobPayment> JobPayments { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -174,6 +177,76 @@ namespace TimeSaverAPI.Data
 
             modelBuilder.Entity<ProfileVisit>().HasIndex(pv => pv.ProfileUserId);
             modelBuilder.Entity<ProfileVisit>().HasIndex(pv => new { pv.VisitorUserId, pv.ProfileUserId });
+
+            // Phase 10: BillingProfile — 1:1 with User
+            modelBuilder.Entity<BillingProfile>()
+                .HasOne(bp => bp.User)
+                .WithOne(u => u.BillingProfile)
+                .HasForeignKey<BillingProfile>(bp => bp.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<BillingProfile>()
+                .HasIndex(bp => bp.UserId)
+                .IsUnique();
+
+            // Phase 10: PaymentTransactions — N:1 with User
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasOne(pt => pt.User)
+                .WithMany(u => u.PaymentTransactions)
+                .HasForeignKey(pt => pt.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PaymentTransaction>()
+                .Property(pt => pt.Amount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<PaymentTransaction>().HasIndex(pt => pt.UserId);
+            modelBuilder.Entity<PaymentTransaction>().HasIndex(pt => pt.StripeSessionId);
+            modelBuilder.Entity<PaymentTransaction>().HasIndex(pt => pt.CreatedAt);
+            modelBuilder.Entity<PaymentTransaction>().HasIndex(pt => pt.StripeChargeId);
+            modelBuilder.Entity<PaymentTransaction>().HasIndex(pt => pt.TopUpTransactionId);
+
+            // Self-referential FK: WalletDebitTaskPayment → TopUp
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasOne(pt => pt.TopUpTransaction)
+                .WithMany()
+                .HasForeignKey(pt => pt.TopUpTransactionId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            // Phase 11: JobPayments
+            modelBuilder.Entity<JobPayment>()
+                .HasOne(jp => jp.JobPost)
+                .WithOne(j => j.Payment)
+                .HasForeignKey<JobPayment>(jp => jp.JobPostId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<JobPayment>()
+                .HasOne(jp => jp.Employer)
+                .WithMany()
+                .HasForeignKey(jp => jp.EmployerId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            modelBuilder.Entity<JobPayment>()
+                .HasOne(jp => jp.Worker)
+                .WithMany()
+                .HasForeignKey(jp => jp.WorkerId)
+                .OnDelete(DeleteBehavior.ClientSetNull);
+
+            modelBuilder.Entity<JobPayment>()
+                .Property(jp => jp.Amount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<JobPayment>()
+                .Property(jp => jp.PlatformFeeAmount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<JobPayment>()
+                .Property(jp => jp.WorkerAmount)
+                .HasPrecision(18, 2);
+
+            modelBuilder.Entity<JobPayment>().HasIndex(jp => jp.JobPostId).IsUnique();
+            modelBuilder.Entity<JobPayment>().HasIndex(jp => jp.StripeCheckoutSessionId);
+            modelBuilder.Entity<JobPayment>().HasIndex(jp => jp.StripePaymentIntentId);
         }
     }
 }

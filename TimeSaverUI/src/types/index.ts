@@ -13,7 +13,49 @@ export type NotificationType =
   | 'ApplicationAccepted'
   | 'NewMessage'
   | 'NewReview'
-  | 'JobCompleted';
+  | 'JobCompleted'
+  | 'PaymentHeld'
+  | 'PaymentReleased';
+
+export type JobPaymentStatus =
+  | 'NotStarted'
+  | 'CheckoutPending'
+  | 'PaidHeld'
+  | 'ReleasedToWorker'
+  | 'RefundPending'
+  | 'Refunded'
+  | 'Failed';
+
+export type PaymentSource = 'Card' | 'Wallet';
+
+export interface JobPayment {
+  id: number;
+  amount: number;
+  currency: string;
+  platformFeeAmount?: number;
+  workerAmount?: number;
+  status: JobPaymentStatus;
+  paymentSource?: PaymentSource;
+  paidAt?: string;
+  releasedAt?: string;
+  stripeTransferId?: string;
+}
+
+export interface PaymentStatusInfo {
+  status: string;
+  payment: JobPayment | null;
+  workerIsPlus?: boolean;
+  estimatedFeePercent?: number;
+}
+
+export interface ConnectStatus {
+  connected: boolean;
+  onboardingComplete: boolean;
+  accountId?: string;
+  chargesEnabled?: boolean;
+  payoutsEnabled?: boolean;
+  detailsSubmitted?: boolean;
+}
 
 export type ReportType   = 'User' | 'Review' | 'Job';
 export type ReportStatus = 'Open' | 'UnderReview' | 'Resolved' | 'Rejected';
@@ -89,6 +131,7 @@ export interface UserProfile {
   userType: UserType;
   averageRating: number;
   reviewCount: number;
+  isPlusSubscriber?: boolean;
 }
 
 export interface PublicProfile {
@@ -121,6 +164,7 @@ export interface ProfileVisitor {
   visitorName: string;
   visitorType: UserType;
   visitedAt: string;
+  isPlusSubscriber?: boolean;
 }
 
 export interface JobPostImage {
@@ -148,13 +192,14 @@ export interface JobApplication {
   createdAt: string;
   jobPostId: number;
   userId?: number;
-  user?: { id: number; name: string; email: string };
+  user?: { id: number; name: string; email: string; isPlusSubscriber?: boolean };
   jobPost?: {
     title?: string;
     budget?: number;
     location?: string;
     status?: JobStatus;
     userId?: number;
+    payment?: JobPayment;
   };
 }
 
@@ -171,10 +216,11 @@ export interface JobPost {
   specialRequirements?: string;
   userId: number;
   acceptedByUserId?: number;
-  user?: { id: number; name: string; email: string };
-  acceptedByUser?: { id: number; name: string };
+  user?: { id: number; name: string; email: string; isPlusSubscriber?: boolean };
+  acceptedByUser?: { id: number; name: string; isPlusSubscriber?: boolean };
   images: JobPostImage[];
   jobApplications: JobApplication[];
+  payment?: JobPayment;
 }
 
 // Lightweight item returned by GET /api/JobPosts (list endpoint)
@@ -215,7 +261,76 @@ export interface ReviewItem {
   reviewerUserId?: number;
   reviewedUserId?: number;
   reviewerName?: string;
+  reviewerIsPlusSubscriber?: boolean;
   jobPostId?: number | null;
+}
+
+// Billing
+export interface BillingTransaction {
+  id: number;
+  amount: number;
+  currency: string;
+  type: string;
+  status: string;
+  description?: string;
+  createdAt: string;
+  jobPostId?: number;
+  jobTitle?: string;
+  stripeTransferId?: string;
+}
+
+export interface BillingSummary {
+  balance: number;
+  walletBalance: number;
+  walletDebits: number;
+  earningsBalance: number;
+  pendingHeldPayments: number;
+  taskPaymentsHeld: number;
+  taskPaymentsReleased: number;
+  taskPaymentsMade: number;
+  totalBalance: number;
+  currency: string;
+  recentTransactions: BillingTransaction[];
+  hasStripeCustomer: boolean;
+  connectOnboardingComplete: boolean;
+}
+
+export interface JobPaymentReceipt {
+  id: number;
+  jobPostId: number;
+  jobTitle?: string;
+  amount: number;
+  platformFeeAmount?: number;
+  workerAmount?: number;
+  currency: string;
+  status: string;
+  paymentSource?: string;
+  paidAt?: string;
+  releasedAt?: string;
+  createdAt: string;
+  role: 'employer' | 'worker';
+  stripeTransferId?: string;
+}
+
+export interface BillingProfileData {
+  id?: number;
+  displayName: string;
+  addressLine1?: string;
+  city?: string;
+  postalCode?: string;
+  country?: string;
+  vatNumber?: string;
+}
+
+export interface StripeInvoice {
+  id: string;
+  number?: string;
+  status?: string;
+  amountPaid: number;
+  currency?: string;
+  created: string;
+  invoicePdfUrl?: string;
+  hostedUrl?: string;
 }
 
 // Returned by GET /api/reviews/given
@@ -324,4 +439,6 @@ export const NOTIFICATION_ICONS: Record<NotificationType, string> = {
   NewMessage:          '💬',
   NewReview:           '⭐',
   JobCompleted:        '🏆',
+  PaymentHeld:         '🔒',
+  PaymentReleased:     '💸',
 };

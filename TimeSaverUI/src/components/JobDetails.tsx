@@ -3,12 +3,14 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import api, { API_ORIGIN } from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
 import { useAuth } from '../context/AuthContext';
-import type { JobPost, JobPostImage, GivenReviewEntry } from '../types';
+import type { JobPost, JobPostImage, GivenReviewEntry, BillingSummary } from '../types';
 import { CATEGORY_LABELS, STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
 import ReportModal from './ReportModal';
 import Chat from './Chat';
+import PlusBadge from './PlusBadge';
+import PaymentStatusBadge from './PaymentStatusBadge';
 import './JobDetails.css';
 
 interface ConfirmState {
@@ -38,6 +40,10 @@ const JobDetails: React.FC = () => {
   const [reviewState, setReviewState] = useState<ReviewState | null>(null);
   const [reviewedIds,  setReviewedIds]  = useState<Set<string>>(new Set());
   const [reportingJob, setReportingJob] = useState(false);
+  const [paymentLoading,     setPaymentLoading]     = useState(false);
+  const [walletBalance,      setWalletBalance]      = useState<number | null>(null);
+  const [workerIsPlus,       setWorkerIsPlus]       = useState<boolean | null>(null);
+  const [commissionPercent,  setCommissionPercent]  = useState<number | null>(null);
 
   // Image upload state
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,6 +54,10 @@ const JobDetails: React.FC = () => {
     try {
       const res = await api.get<JobPost>(`/JobPosts/${id}`);
       setJob(res.data);
+      // Load wallet + commission info if this user owns the job
+      if (res.data.userId === user?.userId && id) {
+        fetchPaymentMeta(id);
+      }
     } catch {
       setJob(null);
     } finally {
@@ -59,6 +69,23 @@ const JobDetails: React.FC = () => {
     try {
       const res = await api.get<GivenReviewEntry[]>('/reviews/given');
       setReviewedIds(new Set(res.data.map(e => `${e.reviewedUserId}_${e.jobPostId}`)));
+    } catch {
+      // non-blocking
+    }
+  };
+
+  // Fetch wallet balance + commission info for owner only
+  const fetchPaymentMeta = async (jobId: string) => {
+    try {
+      const [summaryRes, statusRes] = await Promise.all([
+        api.get<BillingSummary>('/billing/summary'),
+        api.get<{ workerIsPlus?: boolean; estimatedFeePercent?: number }>(`/jobs/${jobId}/payments/status`).catch(() => null),
+      ]);
+      setWalletBalance(summaryRes.data.walletBalance ?? 0);
+      if (statusRes) {
+        setWorkerIsPlus(statusRes.data.workerIsPlus ?? null);
+        setCommissionPercent(statusRes.data.estimatedFeePercent ?? null);
+      }
     } catch {
       // non-blocking
     }
@@ -120,22 +147,6 @@ const JobDetails: React.FC = () => {
     );
   };
 
-  const completeJob = () => {
-    showConfirm(
-      'Marchezi jobul ca finalizat? Actiunea nu poate fi anulata.',
-      async () => {
-        try {
-          await api.put(`/JobPosts/${id}/complete`);
-          setNotification({ type: 'success', msg: 'Job finalizat!' });
-          fetchJob();
-        } catch (e) {
-          setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la finalizare.') });
-        }
-      },
-      { confirmLabel: 'Finalizeaza', danger: false }
-    );
-  };
-
   const cancelJob = () => {
     showConfirm(
       'Anulezi acest job? Aplicatiile in asteptare vor fi respinse automat.',
@@ -171,6 +182,50 @@ const JobDetails: React.FC = () => {
     setReviewState(null);
     setNotification({ type: 'success', msg: 'Recenzia a fost trimisa cu succes!' });
     fetchReviewedIds();
+  };
+
+  const startPayment = async () => {
+    setPaymentLoading(true);
+    try {
+      const res = await api.post<{ checkoutUrl: string }>(`/jobs/${id}/payments/create-checkout-session`);
+      window.location.href = res.data.checkoutUrl;
+    } catch (e) {
+      setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la inițierea plății.') });
+    } finally {
+      setPaymentLoading(false);
+    }
+  };
+
+  const payFromWallet = () => {
+    showConfirm(
+      `Plătești ${job?.budget?.toFixed(2) ?? '—'} RON din soldul reîncărcat? Suma va fi reținută până la eliberare.`,
+      async () => {
+        try {
+          await api.post(`/jobs/${id}/payments/pay-from-wallet`);
+          setNotification({ type: 'success', msg: 'Plată din sold securizată cu succes!' });
+          fetchJob();
+        } catch (e) {
+          setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la plata din sold.') });
+        }
+      },
+      { confirmLabel: 'Plătește din sold', danger: false }
+    );
+  };
+
+  const releasePayment = () => {
+    showConfirm(
+      'Eliberezi plata prestatorului? Acțiunea nu poate fi anulată.',
+      async () => {
+        try {
+          await api.post(`/jobs/${id}/payments/release`);
+          setNotification({ type: 'success', msg: 'Plata a fost eliberată cu succes!' });
+          fetchJob();
+        } catch (e) {
+          setNotification({ type: 'error', msg: extractApiError(e, 'Eroare la eliberarea plății.') });
+        }
+      },
+      { confirmLabel: 'Eliberează plata', danger: false }
+    );
   };
 
   // ── Image upload ──────────────────────────────────────────────────────────
@@ -413,9 +468,72 @@ const JobDetails: React.FC = () => {
             {/* Owner actions */}
             {isOwner && (
               <div className="jd-owner-actions">
-                {job.status === 'InProgress' && (
-                  <button className="btn btn-success" onClick={completeJob}>Marcheaza finalizat</button>
-                )}
+                {/* Payment actions — InProgress + worker accepted */}
+                {job.status === 'InProgress' && job.acceptedByUserId && (() => {
+                  const pmt = job.payment;
+                  const pmtStatus = pmt?.status;
+                  if (!pmtStatus || pmtStatus === 'NotStarted' || pmtStatus === 'CheckoutPending' || pmtStatus === 'Failed') {
+                    const budget       = job.budget;
+                    const canPayWallet = walletBalance !== null && walletBalance >= budget;
+                    const feeLabel     = workerIsPlus === true
+                      ? 'Prestator Plus — 0% comision'
+                      : commissionPercent !== null
+                        ? `Comision platformă: ${commissionPercent}%`
+                        : null;
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', alignItems: 'flex-start' }}>
+                        {feeLabel && (
+                          <div style={{
+                            fontSize: '0.8rem',
+                            color: workerIsPlus ? 'var(--success, #22c55e)' : 'var(--text-muted)',
+                            fontWeight: 600,
+                          }}>
+                            {workerIsPlus ? '⭐ ' : '💡 '}{feeLabel}
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <button className="btn btn-primary" onClick={startPayment} disabled={paymentLoading}>
+                            {paymentLoading ? 'Se procesează...' : '💳 Plătește cu cardul'}
+                          </button>
+                          <button
+                            className="btn btn-outline"
+                            onClick={payFromWallet}
+                            disabled={!canPayWallet || paymentLoading}
+                            title={!canPayWallet ? `Sold insuficient (${walletBalance?.toFixed(2) ?? '0.00'} RON)` : undefined}
+                          >
+                            💰 Plătește din sold
+                          </button>
+                        </div>
+                        {walletBalance !== null && (
+                          <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                            Sold reîncărcat: <strong>{walletBalance.toFixed(2)} RON</strong>
+                            {!canPayWallet && (
+                              <> — insuficient. <Link to="/billing/top-up">Reîncarcă</Link></>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  }
+                  if (pmtStatus === 'PaidHeld') {
+                    const sourceLabel = pmt?.paymentSource === 'Wallet' ? ' (din sold)' : ' (card)';
+                    return (
+                      <>
+                        <PaymentStatusBadge status={pmtStatus} />
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                          Metodă plată: {pmt?.paymentSource === 'Wallet' ? '💰 Sold' : '💳 Card'}
+                        </div>
+                        <button className="btn btn-success" onClick={releasePayment}>
+                          💸 Eliberează plata{sourceLabel}
+                        </button>
+                      </>
+                    );
+                  }
+                  if (pmtStatus === 'ReleasedToWorker') {
+                    return <PaymentStatusBadge status={pmtStatus} workerAmount={pmt?.workerAmount} hasTransfer={!!pmt?.stripeTransferId} />;
+                  }
+                  return <PaymentStatusBadge status={pmtStatus} />;
+                })()}
                 {(job.status === 'Open' || job.status === 'InProgress') && (
                   <button className="btn btn-outline" onClick={cancelJob}>Anuleaza job</button>
                 )}
@@ -439,9 +557,35 @@ const JobDetails: React.FC = () => {
             {/* Worker actions */}
             {isWorker && !isOwner && (
               <div className="jd-owner-actions">
-                {job.status === 'InProgress' && (
-                  <button className="btn btn-success" onClick={completeJob}>Marcheaza finalizat</button>
-                )}
+                {/* Worker payment status */}
+                {job.payment && job.payment.status !== 'NotStarted' && (() => {
+                  const pmt = job.payment!;
+                  if (pmt.status === 'PaidHeld') {
+                    return (
+                      <div className="jd-payment-info">
+                        <PaymentStatusBadge status={pmt.status} />
+                        <span className="text-muted" style={{ fontSize: '0.82rem' }}>
+                          Suma de {pmt.workerAmount?.toFixed(2) ?? pmt.amount.toFixed(2)} RON va fi eliberată după finalizare.
+                        </span>
+                      </div>
+                    );
+                  }
+                  if (pmt.status === 'ReleasedToWorker') {
+                    const hasTr = !!pmt.stripeTransferId;
+                    return (
+                      <div className="jd-payment-info">
+                        <PaymentStatusBadge status={pmt.status} workerAmount={pmt.workerAmount} hasTransfer={hasTr} />
+                        {!hasTr && (
+                          <span className="text-muted" style={{ fontSize: '0.82rem' }}>
+                            Transferul este în așteptare — configurează-ți contul de plăți.{' '}
+                            <Link to="/billing/business">Configurează acum</Link>
+                          </span>
+                        )}
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
                 {job.status === 'Completed' && !reviewedIds.has(`${job.userId}_${Number(id)}`) && (
                   <button
                     className="btn btn-outline"
@@ -494,6 +638,11 @@ const JobDetails: React.FC = () => {
                   ? (job.acceptedByUser?.name ?? 'Prestator')
                   : (job.user?.name ?? 'Angajator')
               }
+              otherPartyIsPlus={
+                isOwner
+                  ? job.acceptedByUser?.isPlusSubscriber
+                  : job.user?.isPlusSubscriber
+              }
             />
           )}
         </div>
@@ -541,8 +690,9 @@ const JobDetails: React.FC = () => {
                 {job.jobApplications.map(app => (
                   <div key={app.id} className="jd-app-item">
                     <div className="jd-app-header">
-                      <Link to={`/users/${app.userId}/profile`} className="jd-app-name">
+                      <Link to={`/users/${app.userId}/profile`} className="jd-app-name" style={{ display: 'flex', alignItems: 'center' }}>
                         👤 {app.user?.name ?? `User #${app.userId}`}
+                        {app.user?.isPlusSubscriber && <PlusBadge size="sm" />}
                       </Link>
                       <span className={`badge badge-${app.jobApplicationStatus.toLowerCase()}`}>
                         {app.jobApplicationStatus === 'Accepted' ? 'Acceptat' : app.jobApplicationStatus === 'Rejected' ? 'Respins' : 'In asteptare'}

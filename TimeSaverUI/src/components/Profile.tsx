@@ -4,6 +4,7 @@ import api from '../api/axiosConfig';
 import { useAuth } from '../context/AuthContext';
 import { usePlus } from '../context/PlusContext';
 import type { UserProfile, ReviewsResponse, ProfileVisitor } from '../types';
+import PlusBadge from './PlusBadge';
 import './Profile.css';
 
 function renderStars(rating: number) {
@@ -149,7 +150,10 @@ const Profile: React.FC = () => {
               </form>
             ) : (
               <>
-                <h2 className="profile-name">{profile.name}</h2>
+                <h2 className="profile-name">
+                  {profile.name}
+                  {isPlusVerified && <PlusBadge size="lg" />}
+                </h2>
                 <div className="profile-role-badge">{roleLabel}</div>
 
                 {/* Rating */}
@@ -220,7 +224,10 @@ const Profile: React.FC = () => {
               {reviews.reviews.map(r => (
                 <div key={r.id} className="review-card card">
                   <div className="review-header">
-                    <div className="review-author">{r.reviewerName ?? 'Utilizator'}</div>
+                    <div className="review-author" style={{ display: 'flex', alignItems: 'center' }}>
+                      {r.reviewerName ?? 'Utilizator'}
+                      {r.reviewerIsPlusSubscriber && <PlusBadge size="sm" />}
+                    </div>
                     <div>
                       <span className="stars">{renderStars(r.rating)}</span>
                       <span className="review-date">
@@ -250,9 +257,12 @@ const Profile: React.FC = () => {
                       {v.visitorName.charAt(0).toUpperCase()}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <Link to={`/users/${v.visitorUserId}/profile`} style={{ fontWeight: 600 }}>
-                        {v.visitorName}
-                      </Link>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 0 }}>
+                        <Link to={`/users/${v.visitorUserId}/profile`} style={{ fontWeight: 600 }}>
+                          {v.visitorName}
+                        </Link>
+                        {v.isPlusSubscriber && <PlusBadge size="sm" />}
+                      </span>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         {v.visitorType === 'Worker' ? 'Prestator' : 'Angajator'} ·{' '}
                         {new Date(v.visitedAt).toLocaleDateString('ro-RO')}

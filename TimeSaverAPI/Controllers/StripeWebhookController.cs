@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Stripe;
 using TimeSaverAPI.Data;
 using TimeSaverAPI.Models;
+using PaymentTransactionStatus = TimeSaverAPI.Models.PaymentTransactionStatus;
 
 namespace TimeSaverAPI.Controllers
 {
@@ -88,6 +89,10 @@ namespace TimeSaverAPI.Controllers
                         HandleInvoiceFailed(stripeEvent.Data.Object as Invoice);
                         break;
 
+                    case "account.updated":
+                        await HandleAccountUpdated(stripeEvent.Data.Object as Account);
+                        break;
+
                     default:
                         _logger.LogDebug("Unhandled Stripe event: {EventType}", stripeEvent.Type);
                         break;
@@ -103,12 +108,26 @@ namespace TimeSaverAPI.Controllers
         }
 
         // ── checkout.session.completed ────────────────────────────────────────────
-        // Payment confirmed. Fetch the subscription directly from Stripe
-        // (event payload subscription may still be in 'incomplete' at this instant).
+        // Routes to Plus activation, balance top-up, or task payment based on metadata.purpose.
         private async Task HandleCheckoutCompleted(Stripe.Checkout.Session? session)
         {
             if (session == null || string.IsNullOrEmpty(session.CustomerId)) return;
 
+            var purpose = session.Metadata?.GetValueOrDefault("purpose") ?? "plus_subscription";
+
+            if (purpose == "balance_topup")
+            {
+                await HandleTopUpCompleted(session);
+                return;
+            }
+
+            if (purpose == "task_payment")
+            {
+                await HandleTaskPaymentCompleted(session);
+                return;
+            }
+
+            // Default: Plus subscription flow
             var user = await _context.Users.FirstOrDefaultAsync(u => u.StripeCustomerId == session.CustomerId);
             if (user == null)
             {
@@ -129,6 +148,66 @@ namespace TimeSaverAPI.Controllers
             // Fetch real-time subscription status — don't trust the session payload
             var freshSub = await new SubscriptionService().GetAsync(session.SubscriptionId);
             await ApplySubscriptionStatus(user, freshSub, "checkout.session.completed");
+        }
+
+        // ── balance_topup checkout completed ─────────────────────────────────────
+        private async Task HandleTopUpCompleted(Stripe.Checkout.Session session)
+        {
+            // Idempotency: one transaction per session
+            bool alreadyRecorded = await _context.PaymentTransactions
+                .AnyAsync(t => t.StripeSessionId == session.Id);
+            if (alreadyRecorded)
+            {
+                _logger.LogInformation("TopUp session {SessionId} already recorded — skipping", session.Id);
+                return;
+            }
+
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.StripeCustomerId == session.CustomerId);
+            if (user == null)
+            {
+                _logger.LogWarning("TopUpCompleted: no user for customer {CustomerId}", session.CustomerId);
+                return;
+            }
+
+            var amount   = session.AmountTotal.HasValue ? session.AmountTotal.Value / 100m : 0m;
+            var currency = session.Currency ?? "ron";
+
+            // Resolve the Charge ID from the PaymentIntent so we can later use it as
+            // SourceTransaction when releasing wallet-funded task payments.
+            string? chargeId = null;
+            if (!string.IsNullOrEmpty(session.PaymentIntentId))
+            {
+                try
+                {
+                    var pi = await new PaymentIntentService().GetAsync(
+                        session.PaymentIntentId,
+                        new PaymentIntentGetOptions { Expand = ["latest_charge"] });
+                    chargeId = pi.LatestChargeId ?? pi.LatestCharge?.Id;
+                }
+                catch (StripeException ex)
+                {
+                    _logger.LogWarning(ex, "TopUp: could not resolve ChargeId for PI {PiId}", session.PaymentIntentId);
+                }
+            }
+
+            _context.PaymentTransactions.Add(new PaymentTransaction
+            {
+                UserId                = user.Id,
+                Amount                = amount,
+                Currency              = currency,
+                Type                  = PaymentTransactionType.TopUp,
+                Status                = PaymentTransactionStatus.Succeeded,
+                StripeSessionId       = session.Id,
+                StripePaymentIntentId = session.PaymentIntentId,
+                StripeChargeId        = chargeId,
+                Description           = $"Reîncărcare sold {amount:F2} {currency.ToUpperInvariant()}",
+                CreatedAt             = DateTime.UtcNow,
+            });
+
+            await _context.SaveChangesAsync();
+            _logger.LogInformation(
+                "TopUp recorded: user {UserId} +{Amount} {Currency} ChargeId={ChargeId}",
+                user.Id, amount, currency, chargeId ?? "(none)");
         }
 
         // ── customer.subscription.created / updated ───────────────────────────────
@@ -203,6 +282,99 @@ namespace TimeSaverAPI.Controllers
             _logger.LogWarning(
                 "InvoicePaymentFailed: customer {CustomerId} — Stripe will retry; no Plus change",
                 invoice.CustomerId);
+        }
+
+        // ── task_payment checkout completed ──────────────────────────────────────
+        private async Task HandleTaskPaymentCompleted(Stripe.Checkout.Session session)
+        {
+            if (!session.Metadata.TryGetValue("jobPaymentId", out var jobPaymentIdStr) ||
+                !long.TryParse(jobPaymentIdStr, out var jobPaymentId))
+            {
+                _logger.LogWarning("TaskPayment webhook: missing jobPaymentId in session {SessionId}", session.Id);
+                return;
+            }
+
+            // Idempotency: don't process the same session twice
+            var alreadyProcessed = await _context.JobPayments
+                .AnyAsync(jp => jp.StripeCheckoutSessionId == session.Id &&
+                                jp.Status == JobPaymentStatus.PaidHeld);
+            if (alreadyProcessed)
+            {
+                _logger.LogInformation("TaskPayment session {SessionId} already processed — skipping", session.Id);
+                return;
+            }
+
+            var payment = await _context.JobPayments
+                .Include(jp => jp.JobPost)
+                .FirstOrDefaultAsync(jp => jp.Id == jobPaymentId);
+
+            if (payment == null)
+            {
+                _logger.LogWarning("TaskPayment webhook: JobPayment {JobPaymentId} not found", jobPaymentId);
+                return;
+            }
+
+            payment.Status               = JobPaymentStatus.PaidHeld;
+            payment.PaidAt               = DateTime.UtcNow;
+            payment.StripePaymentIntentId = session.PaymentIntentId;
+
+            // Keep job InProgress (payment is held, not yet released)
+            if (payment.JobPost != null && payment.JobPost.Status == JobStatus.Open)
+                payment.JobPost.Status = JobStatus.InProgress;
+
+            await _context.SaveChangesAsync();
+
+            // Notify worker that payment is held securely
+            if (payment.WorkerId.HasValue)
+            {
+                var workerNotificationMsg = payment.JobPost != null
+                    ? $"Angajatorul a efectuat plata securizată de {payment.Amount:F2} RON pentru jobul '{payment.JobPost.Title}'. Suma va fi eliberată la finalizare."
+                    : $"Angajatorul a efectuat o plată securizată de {payment.Amount:F2} RON.";
+
+                _context.Notifications.Add(new TimeSaverAPI.Models.Notification
+                {
+                    UserId           = payment.WorkerId.Value,
+                    Type             = NotificationType.PaymentHeld,
+                    Title            = "Plată securizată",
+                    Message          = workerNotificationMsg,
+                    RelatedJobPostId = payment.JobPostId,
+                    IsRead           = false,
+                    CreatedAt        = DateTime.UtcNow,
+                });
+                await _context.SaveChangesAsync();
+            }
+
+            _logger.LogInformation(
+                "TaskPayment held: JobPayment {JobPaymentId}, session {SessionId}, amount {Amount} RON",
+                jobPaymentId, session.Id, payment.Amount);
+        }
+
+        // ── account.updated ───────────────────────────────────────────────────────
+        // Fired when an Express connected account updates its details.
+        private async Task HandleAccountUpdated(Account? account)
+        {
+            if (account == null) return;
+
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.StripeConnectAccountId == account.Id);
+
+            if (user == null)
+            {
+                _logger.LogDebug("account.updated: no user for Connect account {AccountId}", account.Id);
+                return;
+            }
+
+            var wasComplete = user.StripeConnectOnboardingComplete;
+            var isNowComplete = account.DetailsSubmitted && account.ChargesEnabled;
+
+            if (isNowComplete && !wasComplete)
+            {
+                user.StripeConnectOnboardingComplete = true;
+                await _context.SaveChangesAsync();
+                _logger.LogInformation(
+                    "Connect account {AccountId} for user {UserId} is now fully onboarded",
+                    account.Id, user.Id);
+            }
         }
 
         // ── Core status logic ─────────────────────────────────────────────────────

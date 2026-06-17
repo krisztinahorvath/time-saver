@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axiosConfig';
 import { extractApiError } from '../utils/apiError';
-import type { JobApplication, GivenReviewEntry } from '../types';
+import type { JobApplication, GivenReviewEntry, ConnectStatus, PlusStatus } from '../types';
+import PaymentStatusBadge from './PaymentStatusBadge';
 import { STATUS_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
@@ -16,6 +17,9 @@ interface ReviewTarget {
 
 const MyApplications: React.FC = () => {
   const [apps, setApps] = useState<JobApplication[]>([]);
+  const [connectStatus, setConnectStatus] = useState<ConnectStatus | null>(null);
+  const [plusStatus,    setPlusStatus]    = useState<PlusStatus | null>(null);
+  const [connectLoading, setConnectLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
   const [confirmPending, setConfirmPending] = useState<number | null>(null);
@@ -42,9 +46,40 @@ const MyApplications: React.FC = () => {
     }
   };
 
+  const fetchConnectStatus = async () => {
+    try {
+      const res = await api.get<ConnectStatus>('/billing/connect/status');
+      setConnectStatus(res.data);
+    } catch {
+      // non-blocking
+    }
+  };
+
+  const fetchPlusStatus = async () => {
+    try {
+      const res = await api.get<PlusStatus>('/plus/status');
+      setPlusStatus(res.data);
+    } catch {
+      // non-blocking
+    }
+  };
+
+  const startConnectOnboarding = async () => {
+    setConnectLoading(true);
+    try {
+      const res = await api.post<{ onboardingUrl: string }>('/billing/connect/onboarding');
+      window.location.href = res.data.onboardingUrl;
+    } catch (e) {
+      setNotification({ msg: extractApiError(e, 'Eroare la configurarea contului de plăți.'), type: 'error' });
+      setConnectLoading(false);
+    }
+  };
+
   useEffect(() => {
     fetchApps();
     fetchReviewedIds();
+    fetchConnectStatus();
+    fetchPlusStatus();
   }, []);
 
   const withdraw = async (appId: number) => {
@@ -107,6 +142,23 @@ const MyApplications: React.FC = () => {
         </div>
       )}
 
+      {/* Payout setup CTA — shown to workers without Connect configured */}
+      {connectStatus !== null && !connectStatus.onboardingComplete && (
+        <div className="card" style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)', marginBottom: '1.25rem', display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1 }}>
+            <strong>🏦 Configurează contul de primire plăți</strong>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: '0.25rem 0 0' }}>
+              {connectStatus.connected
+                ? 'Contul tău Stripe Connect necesită completarea înregistrării pentru a primi plăți de la angajatori.'
+                : 'Adaugă un cont bancar prin Stripe Connect pentru a primi plăți securizate de la angajatori.'}
+            </p>
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={startConnectOnboarding} disabled={connectLoading}>
+            {connectLoading ? 'Se procesează...' : connectStatus.connected ? 'Completează înregistrarea' : 'Configurează acum'}
+          </button>
+        </div>
+      )}
+
       <div className="dash-stats">
         <div className="stat-card"><div className="stat-num" style={{ color: 'var(--success)' }}>{accepted.length}</div><div className="stat-label">Acceptate</div></div>
         <div className="stat-card"><div className="stat-num" style={{ color: 'var(--warning)' }}>{pending.length}</div><div className="stat-label">În așteptare</div></div>
@@ -133,6 +185,7 @@ const MyApplications: React.FC = () => {
                     reviewedIds={reviewedIds}
                     onWithdraw={id => setConfirmPending(id)}
                     onReview={setReviewTarget}
+                    workerIsPlus={plusStatus?.isPlusSubscriber ?? false}
                   />
                 ))}
               </div>
@@ -149,6 +202,7 @@ const MyApplications: React.FC = () => {
                     reviewedIds={reviewedIds}
                     onWithdraw={id => setConfirmPending(id)}
                     onReview={setReviewTarget}
+                    workerIsPlus={plusStatus?.isPlusSubscriber ?? false}
                   />
                 ))}
               </div>
@@ -165,6 +219,7 @@ const MyApplications: React.FC = () => {
                     reviewedIds={reviewedIds}
                     onWithdraw={id => setConfirmPending(id)}
                     onReview={setReviewTarget}
+                    workerIsPlus={plusStatus?.isPlusSubscriber ?? false}
                   />
                 ))}
               </div>
@@ -181,9 +236,10 @@ interface AppCardProps {
   reviewedIds: Set<string>;
   onWithdraw: (id: number) => void;
   onReview: (target: ReviewTarget) => void;
+  workerIsPlus: boolean;
 }
 
-const AppCard: React.FC<AppCardProps> = ({ app, reviewedIds, onWithdraw, onReview }) => {
+const AppCard: React.FC<AppCardProps> = ({ app, reviewedIds, onWithdraw, onReview, workerIsPlus }) => {
   const jobCompleted = app.jobPost?.status === 'Completed';
   const employerId  = app.jobPost?.userId;
   const alreadyReviewed = employerId !== undefined && reviewedIds.has(`${employerId}_${app.jobPostId}`);
@@ -200,7 +256,23 @@ const AppCard: React.FC<AppCardProps> = ({ app, reviewedIds, onWithdraw, onRevie
       </div>
 
       <div className="ma-card-meta">
-        {app.jobPost?.budget !== undefined && <span>💰 {app.jobPost.budget} RON</span>}
+        {app.jobPost?.budget !== undefined && (
+          <>
+            <span>💰 {app.jobPost.budget} RON</span>
+            {app.jobApplicationStatus === 'Accepted' && app.jobPost?.payment?.workerAmount !== undefined ? (
+              <span style={{ color: 'var(--success, #22c55e)', fontWeight: 600 }}>
+                Vei primi: {app.jobPost.payment.workerAmount.toFixed(2)} RON
+                {app.jobPost.payment.platformFeeAmount === 0 && ' ⭐'}
+              </span>
+            ) : app.jobApplicationStatus === 'Accepted' ? (
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>
+                {workerIsPlus
+                  ? `⭐ Vei primi: ${app.jobPost.budget.toFixed(2)} RON (0% comision Plus)`
+                  : `Vei primi: ~${(app.jobPost.budget * 0.95).toFixed(2)} RON (5% comision)`}
+              </span>
+            ) : null}
+          </>
+        )}
         {app.jobPost?.location && <span>📍 {app.jobPost.location}</span>}
         {app.jobPost?.status && (
           <span className={`badge badge-${app.jobPost.status.toLowerCase()}`}>
@@ -211,6 +283,27 @@ const AppCard: React.FC<AppCardProps> = ({ app, reviewedIds, onWithdraw, onRevie
       </div>
 
       <p className="ma-msg">Mesajul tău: <em>"{app.message}"</em></p>
+
+      {/* Payment status — visible when accepted and employer has initiated payment */}
+      {app.jobApplicationStatus === 'Accepted' && app.jobPost?.payment && app.jobPost.payment.status !== 'NotStarted' && (
+        <div style={{ marginBottom: '0.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <PaymentStatusBadge
+            status={app.jobPost.payment.status}
+            workerAmount={app.jobPost.payment.workerAmount}
+            hasTransfer={!!app.jobPost.payment.stripeTransferId}
+          />
+          {app.jobPost.payment.status === 'PaidHeld' && (
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              {(app.jobPost.payment.workerAmount ?? app.jobPost.payment.amount).toFixed(2)} RON în escrow
+            </span>
+          )}
+          {app.jobPost.payment.status === 'ReleasedToWorker' && !app.jobPost.payment.stripeTransferId && (
+            <Link to="/billing/business" style={{ fontSize: '0.78rem' }}>
+              Configurează cont plăți
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="ma-card-actions">
         <Link to={`/jobs/${app.jobPostId}`} className="btn btn-ghost btn-sm">

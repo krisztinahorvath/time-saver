@@ -6,6 +6,8 @@ import type { JobPost, GivenReviewEntry } from '../types';
 import { STATUS_LABELS, CATEGORY_LABELS } from '../types';
 import ConfirmModal from './ConfirmModal';
 import ReviewModal from './ReviewModal';
+import PlusBadge from './PlusBadge';
+import PaymentStatusBadge from './PaymentStatusBadge';
 import './MyJobs.css';
 
 function statusBadge(status: string) {
@@ -91,22 +93,6 @@ const MyJobs: React.FC = () => {
         }
       },
       { confirmLabel: 'Acceptă', danger: false }
-    );
-  };
-
-  const completeJob = (jobId: number) => {
-    showConfirm(
-      'Marchezi jobul ca finalizat? Acțiunea nu poate fi anulată.',
-      async () => {
-        try {
-          await api.put(`/JobPosts/${jobId}/complete`);
-          setNotification({ msg: 'Job finalizat cu succes!', type: 'success' });
-          fetchJobs();
-        } catch (e) {
-          setNotification({ msg: extractApiError(e, 'Eroare la finalizare.'), type: 'error' });
-        }
-      },
-      { confirmLabel: 'Finalizează', danger: false }
     );
   };
 
@@ -229,11 +215,14 @@ const MyJobs: React.FC = () => {
                   </div>
 
                   <div className="mj-actions">
-                    {job.status === 'InProgress' && (
-                      <button className="btn btn-success btn-sm" onClick={() => completeJob(job.id)}>
-                        ✓ Finalizează
-                      </button>
-                    )}
+                    {/* Payment status/button for InProgress jobs */}
+                    {job.status === 'InProgress' && (() => {
+                      const pmt = job.payment;
+                      if (!pmt || pmt.status === 'NotStarted' || pmt.status === 'CheckoutPending') {
+                        return <Link to={`/jobs/${job.id}`} className="btn btn-primary btn-sm">💳 Plătește</Link>;
+                      }
+                      return <PaymentStatusBadge status={pmt.status} workerAmount={pmt.workerAmount} hasTransfer={!!pmt.stripeTransferId} />;
+                    })()}
                     {(job.status === 'Open' || job.status === 'InProgress') && (
                       <button className="btn btn-outline btn-sm" onClick={() => cancelJob(job.id)}>
                         ✕ Anulează
@@ -287,6 +276,7 @@ const MyJobs: React.FC = () => {
                             <Link to={`/users/${app.userId}/profile`}>
                               👤 {app.user?.name ?? `User #${app.userId}`}
                             </Link>
+                            {app.user?.isPlusSubscriber && <PlusBadge size="sm" />}
                             {appBadge(app.jobApplicationStatus)}
                           </div>
                           <p className="mj-app-msg">"{app.message}"</p>
