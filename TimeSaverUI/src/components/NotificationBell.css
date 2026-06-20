@@ -5,24 +5,27 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  border-radius: 50%;
-  font-size: 1.15rem;
+  border-radius: var(--radius);
+  font-size: 1.1rem;
   text-decoration: none;
   color: var(--text-muted);
   transition: background var(--transition), color var(--transition);
   flex-shrink: 0;
+  cursor: pointer;
+  background: none;
+  border: none;
 }
 .nb-bell:hover {
-  background: var(--bg);
+  background: var(--bg-alt);
   color: var(--primary);
   text-decoration: none;
 }
 
 .nb-badge {
   position: absolute;
-  top: 0;
-  right: 0;
-  background: #ef4444;
+  top: 2px;
+  right: 2px;
+  background: var(--danger);
   color: #fff;
   font-size: 0.6rem;
   font-weight: 800;

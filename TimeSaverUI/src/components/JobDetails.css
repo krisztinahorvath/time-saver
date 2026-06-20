@@ -1,43 +1,73 @@
 .back-link {
-  display: inline-block;
-  font-size: 0.88rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.875rem;
   color: var(--text-muted);
   margin-bottom: 1rem;
   text-decoration: none;
+  font-weight: 500;
+  transition: color var(--transition);
 }
-.back-link:hover { color: var(--primary); }
+.back-link:hover { color: var(--primary); text-decoration: none; }
 
+/* ── Two-column layout ── */
 .jd-layout {
   display: grid;
-  grid-template-columns: 1fr 320px;
-  gap: 1.5rem;
+  grid-template-columns: 1fr 340px;
+  gap: 1.75rem;
   align-items: start;
 }
 
-.jd-main { display: flex; flex-direction: column; gap: 1.25rem; }
+.jd-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  min-width: 0;
+}
 
+.jd-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  position: sticky;
+  top: 76px;
+}
+
+/* ── Job header ── */
 .jd-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.875rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .jd-category {
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--primary);
   background: var(--primary-light);
-  padding: 0.2rem 0.65rem;
+  padding: 0.2rem 0.75rem;
   border-radius: 999px;
+  letter-spacing: 0.03em;
+  border: 1px solid var(--primary-border);
 }
 
-.jd-title { font-size: 1.6rem; font-weight: 800; margin-bottom: 1rem; }
+.jd-title {
+  font-size: 1.625rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  letter-spacing: -0.025em;
+  line-height: 1.25;
+  color: var(--text);
+}
 
 .jd-meta {
   display: flex;
   flex-wrap: wrap;
-  gap: 1rem;
+  gap: 0.875rem;
   margin-bottom: 1.25rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border);
@@ -46,16 +76,27 @@
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.88rem;
+  font-size: 0.875rem;
   color: var(--text-muted);
+  background: var(--bg-alt);
+  padding: 0.375rem 0.75rem;
+  border-radius: var(--radius-md);
+  font-weight: 500;
 }
-.jd-meta-item strong { color: var(--primary); }
+.jd-meta-item strong { color: var(--primary); font-weight: 700; }
 
-.jd-section { margin-bottom: 1.25rem; }
-.jd-section h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; }
-.jd-section p  { font-size: 0.92rem; color: var(--text-muted); line-height: 1.7; white-space: pre-line; }
+.jd-section { margin-bottom: 1.375rem; }
+.jd-section h3 {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  margin-bottom: 0.625rem;
+}
+.jd-section p  { font-size: 0.9375rem; color: var(--text-muted); line-height: 1.7; white-space: pre-line; }
 
-/* Image gallery */
+/* ── Image gallery ── */
 .jd-gallery {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
@@ -64,12 +105,14 @@
 
 .jd-gallery-item {
   position: relative;
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   overflow: hidden;
   border: 2px solid var(--border);
   background: var(--bg);
   aspect-ratio: 4/3;
+  transition: border-color var(--transition), box-shadow var(--transition);
 }
+.jd-gallery-item:hover { border-color: var(--primary); box-shadow: var(--shadow-md); }
 
 .jd-gallery-item.jd-gallery-main {
   border-color: var(--primary);
@@ -118,11 +161,11 @@
 
 .jd-upload-section { border-top: 1px solid var(--border); padding-top: 1.25rem; }
 
-/* Lightbox */
+/* ── Lightbox ── */
 .jd-lightbox {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.85);
+  background: rgba(0,0,0,0.88);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -136,49 +179,73 @@
   border-radius: var(--radius-lg);
 }
 
+/* ── Owner/Worker actions ── */
 .jd-owner-actions {
   display: flex;
   gap: 0.75rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border);
   margin-top: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
 }
 
 .jd-apply-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; }
 
-/* Sidebar */
-.jd-sidebar { display: flex; flex-direction: column; gap: 1rem; }
-
-.jd-poster-card h3, .jd-accepted-card h3 { font-size: 0.88rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.5rem; }
-.jd-poster-name { font-size: 1rem; font-weight: 700; }
+/* ── Sidebar cards ── */
+.jd-poster-card h3, .jd-accepted-card h3 {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.625rem;
+}
+.jd-poster-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+}
 
 .jd-apps-list { display: flex; flex-direction: column; gap: 0.75rem; margin-top: 0.75rem; }
 .jd-app-item {
-  padding: 0.75rem;
-  background: var(--bg);
-  border-radius: var(--radius);
+  padding: 0.875rem;
+  background: var(--bg-alt);
+  border-radius: var(--radius-md);
   border: 1px solid var(--border);
+  transition: background var(--transition);
 }
+.jd-app-item:hover { background: #E8F0FE; border-color: var(--primary-border); }
 .jd-app-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
   margin-bottom: 0.4rem;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
-.jd-app-name { font-size: 0.88rem; font-weight: 600; color: var(--text); text-decoration: none; }
+.jd-app-name { font-size: 0.875rem; font-weight: 600; color: var(--text); text-decoration: none; }
 .jd-app-name:hover { color: var(--primary); }
-.jd-app-msg { font-size: 0.82rem; color: var(--text-muted); font-style: italic; margin-bottom: 0.5rem; }
+.jd-app-msg { font-size: 0.8125rem; color: var(--text-muted); font-style: italic; margin-bottom: 0.5rem; }
 
-/* Status timeline bar */
+/* ── Payment info ── */
+.jd-payment-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+/* ── Status timeline bar ── */
 .jd-status-bar {
   display: flex;
   align-items: center;
   gap: 0;
-  margin-bottom: 1.5rem;
-  background: var(--bg-card, #fff);
-  border: 1px solid var(--border-color, #e5e7eb);
-  border-radius: var(--radius-lg, 12px);
+  margin-bottom: 1.75rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
   padding: 1rem 1.5rem;
+  box-shadow: var(--shadow-sm);
 }
 
 .jd-status-step {
@@ -196,61 +263,65 @@
   white-space: nowrap;
 }
 
-.jd-status-step.done span { color: var(--success, #10b981); font-weight: 700; }
-.jd-status-step.current span { color: var(--primary, #6366f1); font-weight: 700; }
+.jd-status-step.done span    { color: var(--success); font-weight: 700; }
+.jd-status-step.current span { color: var(--primary); font-weight: 700; }
 
 .jd-status-dot {
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   border-radius: 50%;
-  background: var(--border-color, #e5e7eb);
-  border: 2px solid var(--border-color, #e5e7eb);
+  background: var(--border);
+  border: 2.5px solid var(--border);
+  transition: all var(--transition);
 }
 
 .jd-status-step.done .jd-status-dot {
-  background: var(--success, #10b981);
-  border-color: var(--success, #10b981);
+  background: var(--success);
+  border-color: var(--success);
+  box-shadow: 0 0 0 3px rgba(5,150,105,0.15);
 }
 .jd-status-step.current .jd-status-dot {
-  background: var(--primary, #6366f1);
-  border-color: var(--primary, #6366f1);
-  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.18);
 }
 
 .jd-status-line {
   flex: 1;
   height: 2px;
-  background: var(--border-color, #e5e7eb);
+  background: var(--border);
   margin: 0 0.4rem;
   margin-bottom: 1.1rem;
+  transition: background var(--transition);
 }
 
 .jd-status-line.done {
-  background: var(--success, #10b981);
+  background: var(--success);
 }
 
 .jd-status-cancelled {
   margin-left: auto;
-  font-size: 0.82rem;
+  font-size: 0.8125rem;
   font-weight: 700;
-  color: var(--danger, #ef4444);
-  background: #fef2f2;
-  padding: 0.2rem 0.7rem;
+  color: var(--danger);
+  background: var(--danger-light);
+  padding: 0.25rem 0.75rem;
   border-radius: 999px;
+  border: 1px solid #FECACA;
 }
 
-/* Review given badge */
+/* ── Review given badge ── */
 .review-given-badge {
-  font-size: 0.82rem;
-  color: var(--success, #10b981);
+  font-size: 0.8125rem;
+  color: var(--success);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .jd-layout { grid-template-columns: 1fr; }
-  .jd-sidebar { order: -1; }
+  .jd-sidebar { position: static; order: -1; }
   .jd-status-bar { padding: 0.75rem 1rem; gap: 0; overflow-x: auto; }
 }

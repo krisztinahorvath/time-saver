@@ -65,7 +65,7 @@ const Navbar: React.FC = () => {
 
         {/* Logo */}
         <Link to={isAuthenticated ? '/dashboard' : '/'} className="navbar-logo">
-          ⏱ <span>TimeSaver</span>
+          <span className="logo-time">Time</span><span className="logo-saver">Saver</span>
         </Link>
 
         {isAuthenticated ? (

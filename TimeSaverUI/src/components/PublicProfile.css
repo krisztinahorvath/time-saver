@@ -3,7 +3,7 @@
   display: inline-block;
   margin-left: 0.35rem;
   font-size: 1rem;
-  color: #f59e0b;
+  color: var(--plus-gold, #EAB308);
   vertical-align: middle;
   cursor: default;
 }
@@ -15,6 +15,7 @@
   font-size: 0.88rem;
   color: var(--text-muted);
   text-decoration: none;
+  transition: color var(--transition);
 }
 .pp-back:hover { color: var(--primary); text-decoration: none; }
 
@@ -39,14 +40,19 @@
 }
 
 .pp-avatar {
-  width: 90px; height: 90px;
+  width: 96px; height: 96px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark, #1a56d6));
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
-  font-size: 2.2rem;
+  font-size: 2.5rem;
   font-weight: 800;
   display: flex; align-items: center; justify-content: center;
-  box-shadow: 0 4px 16px rgba(37,99,235,0.25);
+  box-shadow: 0 6px 20px rgba(37,99,235,0.25);
+}
+
+/* Gold ring for Plus users */
+.pp-avatar-plus {
+  box-shadow: 0 0 0 3px var(--plus-gold, #EAB308), 0 4px 16px rgba(37,99,235,.2);
 }
 
 .pp-suspended-badge {
@@ -60,7 +66,7 @@
   border-radius: 999px;
 }
 
-.pp-name { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.4rem; }
+.pp-name { font-size: 1.3rem; font-weight: 800; margin-bottom: 0.4rem; letter-spacing: -0.01em; }
 
 .pp-role-badge {
   display: inline-block;
@@ -105,8 +111,8 @@
 .stars-sm     { font-size: 0.95rem; }
 .stars-md     { font-size: 1.1rem; }
 .stars-lg     { font-size: 1.4rem; margin-bottom: 0.25rem; }
-.star-filled  { color: #f59e0b; }
-.star-empty   { color: #d1d5db; }
+.star-filled  { color: var(--warning); }
+.star-empty   { color: #D1D5DB; }
 
 .pp-rating-num   { font-size: 2.2rem; font-weight: 800; color: var(--text); line-height: 1; }
 .pp-rating-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
@@ -185,13 +191,13 @@
   background: none;
   border: none;
   cursor: pointer;
-  color: #d1d5db;
+  color: #D1D5DB;
   transition: color var(--transition), transform var(--transition);
   padding: 0;
   line-height: 1;
 }
 .pp-star-btn:hover,
-.pp-star-on { color: #f59e0b; }
+.pp-star-on { color: var(--warning); }
 .pp-star-btn:hover { transform: scale(1.15); }
 .pp-star-label { font-size: 0.85rem; color: var(--text-muted); margin-left: 0.35rem; }
 
@@ -206,7 +212,8 @@
 
 /* ── Reviews list ── */
 .pp-reviews-list { display: flex; flex-direction: column; gap: 1rem; }
-.pp-review-card  { padding: 1.25rem; }
+.pp-review-card  { padding: 1.25rem; transition: box-shadow var(--transition); }
+.pp-review-card:hover { box-shadow: var(--shadow-md); }
 
 .pp-review-header {
   display: flex;
@@ -260,11 +267,12 @@
   padding: 1rem 1.25rem;
   text-decoration: none;
   color: var(--text);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  transition: border-color var(--transition), box-shadow var(--transition), transform var(--transition);
 }
 .pp-job-card:hover {
   border-color: var(--primary);
-  box-shadow: 0 2px 12px rgba(37,99,235,0.1);
+  box-shadow: 0 4px 12px rgba(37,99,235,.1);
+  transform: translateY(-2px);
   text-decoration: none;
   color: var(--text);
 }

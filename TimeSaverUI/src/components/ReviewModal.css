@@ -6,13 +6,15 @@
   font-size: 1.25rem;
   font-weight: 700;
   margin: 0 0 0.25rem 0;
-  color: var(--text-primary);
+  color: var(--text);
+  letter-spacing: -0.01em;
 }
 
 .review-modal-sub {
   color: var(--text-muted);
   margin: 0 0 1.25rem 0;
   font-size: 0.92rem;
+  line-height: 1.5;
 }
 
 .star-selector {
@@ -27,27 +29,27 @@
   border: none;
   font-size: 2.2rem;
   cursor: pointer;
-  color: var(--border-color, #d1d5db);
+  color: var(--border);
   transition: color 0.12s, transform 0.1s;
   padding: 0;
   line-height: 1;
 }
 
 .star-btn.active {
-  color: #f59e0b;
+  color: var(--warning);
 }
 
 .star-btn:hover {
   transform: scale(1.15);
+  color: var(--warning);
 }
 
 .star-label {
   text-align: center;
   font-size: 0.88rem;
-  color: var(--text-muted);
+  color: var(--warning);
   margin: 0.15rem 0 0;
   font-weight: 600;
-  color: #f59e0b;
 }
 
 .modal-actions {

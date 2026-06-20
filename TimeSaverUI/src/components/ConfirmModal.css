@@ -1,11 +1,14 @@
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 1rem;
   animation: fadeIn 0.15s ease;
 }
 
@@ -16,12 +19,13 @@
 
 .modal-box {
   background: var(--bg-card);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: 1.75rem 2rem;
   max-width: 420px;
   width: 90%;
-  box-shadow: var(--shadow-lg);
+  box-shadow: var(--shadow-xl);
   animation: slideUp 0.15s ease;
+  border: 1px solid var(--border);
 }
 
 @keyframes slideUp {
@@ -32,7 +36,7 @@
 .modal-msg {
   font-size: 0.975rem;
   color: var(--text);
-  line-height: 1.55;
+  line-height: 1.6;
   margin-bottom: 1.5rem;
 }
 

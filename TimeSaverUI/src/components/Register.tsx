@@ -65,7 +65,7 @@ const Register: React.FC = () => {
     <div className="auth-page">
       <div className="auth-card auth-card-wide">
         <div className="auth-logo">
-          <Link to="/">⏱ TimeSaver</Link>
+          <Link to="/"><span className="logo-time">Time</span><span className="logo-saver">Saver</span></Link>
         </div>
         <h2>Creează cont</h2>
         <p className="auth-subtitle">Alătură-te platformei noastre de servicii locale</p>

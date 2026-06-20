@@ -10,7 +10,7 @@
 .notif-list {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
+  gap: 0.6rem;
 }
 
 .notif-card {
@@ -21,19 +21,26 @@
   cursor: pointer;
   position: relative;
   transition: background var(--transition), border-color var(--transition);
+  border-radius: var(--radius-lg);
 }
 
 .notif-unread {
   background: var(--primary-light);
-  border-color: var(--primary);
+  border-color: #BFDBFE;
+}
+.notif-unread:hover {
+  background: #DBEAFE;
 }
 
 .notif-read {
   cursor: default;
 }
+.notif-read:hover {
+  background: var(--bg-alt);
+}
 
 .notif-icon {
-  font-size: 1.4rem;
+  font-size: 1.3rem;
   flex-shrink: 0;
   width: 36px;
   text-align: center;
@@ -47,12 +54,13 @@
 
 .notif-title {
   font-weight: 700;
-  font-size: 0.95rem;
+  font-size: 0.92rem;
   margin-bottom: 0.2rem;
+  color: var(--text);
 }
 
 .notif-message {
-  font-size: 0.875rem;
+  font-size: 0.85rem;
   color: var(--text-muted);
   line-height: 1.5;
   margin-bottom: 0.35rem;
@@ -60,7 +68,7 @@
 
 .notif-date {
   font-size: 0.77rem;
-  color: var(--text-muted);
+  color: var(--text-light);
 }
 
 .notif-actions {

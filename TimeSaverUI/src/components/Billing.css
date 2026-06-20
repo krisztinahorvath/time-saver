@@ -1,47 +1,53 @@
 /* ── Billing layout ── */
 .billing-layout {
   display: grid;
-  grid-template-columns: 220px 1fr;
-  gap: 1.75rem;
+  grid-template-columns: 240px 1fr;
+  gap: 2rem;
   align-items: start;
+  min-height: calc(100vh - 120px);
 }
 
 /* ── Sidebar ── */
 .billing-sidebar {
   position: sticky;
-  top: 80px;
-  background: var(--surface);
+  top: 76px;
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1rem 0;
+  border-radius: var(--radius-xl);
+  padding: 1.125rem 0;
   box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .billing-sidebar-title {
-  font-size: 0.7rem;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.07em;
-  color: var(--text-muted);
-  padding: 0 1.2rem 0.75rem;
-  margin: 0;
+  letter-spacing: 0.08em;
+  color: var(--text-light);
+  padding: 0 0.875rem 0.625rem;
+  margin: 0 0 0.25rem;
   border-bottom: 1px solid var(--border);
+  display: block;
 }
 
 .billing-sidebar a {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.65rem 1.2rem;
-  font-size: 0.88rem;
+  gap: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--text-muted);
   text-decoration: none;
-  transition: background var(--transition), color var(--transition);
+  transition: all var(--transition);
+  border-radius: 0;
+  margin: 0 0.375rem;
+  border-radius: var(--radius-md);
 }
 
 .billing-sidebar a:hover {
-  background: var(--background);
+  background: var(--bg-alt);
   color: var(--text);
   text-decoration: none;
 }
@@ -49,7 +55,7 @@
 .billing-sidebar a.active {
   background: var(--primary-light);
   color: var(--primary);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 /* ── Content area ── */
@@ -57,40 +63,55 @@
 
 /* ── Balance card ── */
 .billing-balance-card {
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark, #1a56d6));
+  background: linear-gradient(135deg, #1E40AF 0%, var(--primary) 50%, #1D4ED8 100%);
   color: #fff;
-  border-radius: var(--radius);
+  border-radius: var(--radius-xl);
   padding: 2rem;
   margin-bottom: 1.25rem;
-  box-shadow: 0 4px 20px rgba(37,99,235,0.25);
+  box-shadow: 0 8px 24px rgba(37,99,235,0.30);
+  position: relative;
+  overflow: hidden;
+}
+.billing-balance-card::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -10%;
+  width: 260px;
+  height: 260px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  pointer-events: none;
 }
 
 .billing-balance-label {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.07em;
   opacity: 0.8;
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.5rem;
 }
 
 .billing-balance-amount {
-  font-size: 2.8rem;
+  font-size: 2.75rem;
   font-weight: 800;
   line-height: 1;
   margin-bottom: 0.25rem;
+  letter-spacing: -0.03em;
 }
 
 .billing-balance-currency {
-  font-size: 0.85rem;
-  opacity: 0.75;
+  font-size: 0.875rem;
+  opacity: 0.7;
+  margin-bottom: 0;
 }
 
 .billing-quick-actions {
   display: flex;
   gap: 0.75rem;
   flex-wrap: wrap;
-  margin-top: 1.25rem;
+  margin-top: 1.5rem;
 }
 
 .billing-quick-actions .btn {
@@ -106,30 +127,47 @@
 }
 
 /* ── Recent transactions ── */
-.billing-tx-list { display: flex; flex-direction: column; gap: 0.5rem; }
+.billing-tx-list { display: flex; flex-direction: column; }
 
 .billing-tx-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 0.75rem 1rem;
-  background: var(--background);
-  border-radius: var(--radius);
-  gap: 0.75rem;
+  gap: 1rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--border);
+  transition: background var(--transition);
+}
+.billing-tx-item:last-child { border-bottom: none; }
+
+.billing-tx-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-md);
+  background: var(--bg-alt);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  flex-shrink: 0;
 }
 
-.billing-tx-icon { font-size: 1.2rem; flex-shrink: 0; }
-
 .billing-tx-info { flex: 1; min-width: 0; }
-.billing-tx-desc { font-size: 0.88rem; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.billing-tx-date { font-size: 0.75rem; color: var(--text-muted); margin-top: 0.15rem; }
+.billing-tx-desc {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.billing-tx-date { font-size: 0.75rem; color: var(--text-light); margin-top: 0.125rem; }
 
-.billing-tx-amount { font-weight: 700; white-space: nowrap; }
-.billing-tx-amount.positive { color: var(--success, #16a34a); }
-.billing-tx-amount.negative { color: var(--danger, #dc2626); }
+.billing-tx-amount { font-weight: 700; white-space: nowrap; font-size: 0.9375rem; }
+.billing-tx-amount.positive { color: var(--success); }
+.billing-tx-amount.negative { color: var(--text); }
 
 /* ── Invoice list ── */
-.billing-invoice-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.billing-invoice-list { display: flex; flex-direction: column; gap: 0.625rem; }
 
 .billing-invoice-item {
   display: flex;
@@ -137,12 +175,20 @@
   justify-content: space-between;
   gap: 1rem;
   padding: 1rem 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
   flex-wrap: wrap;
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.billing-invoice-item:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
 }
 
-.billing-invoice-num  { font-weight: 700; font-size: 0.9rem; }
-.billing-invoice-date { font-size: 0.8rem; color: var(--text-muted); }
-.billing-invoice-amount { font-weight: 700; font-size: 1rem; }
+.billing-invoice-num  { font-weight: 700; font-size: 0.9375rem; color: var(--text); }
+.billing-invoice-date { font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.125rem; }
+.billing-invoice-amount { font-weight: 700; font-size: 1rem; color: var(--text); }
 .billing-invoice-actions { display: flex; gap: 0.5rem; }
 
 /* ── TopUp form ── */
@@ -158,15 +204,16 @@
 }
 
 .billing-amount-preset {
-  padding: 0.45rem 1rem;
-  font-size: 0.88rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  border: 2px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--background);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg);
   cursor: pointer;
   color: var(--text);
-  transition: border-color var(--transition), background var(--transition);
+  transition: all var(--transition);
+  font-family: var(--font);
 }
 
 .billing-amount-preset:hover,
@@ -194,9 +241,16 @@
 .billing-biz-desc  { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
 
 /* ── Responsive ── */
-@media (max-width: 720px) {
+@media (max-width: 768px) {
   .billing-layout { grid-template-columns: 1fr; }
-  .billing-sidebar { position: static; display: flex; flex-wrap: wrap; padding: 0.5rem; gap: 0; }
+  .billing-sidebar {
+    position: static;
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0.5rem;
+    gap: 0;
+    border-radius: var(--radius-lg);
+  }
   .billing-sidebar-title { display: none; }
   .billing-sidebar a { padding: 0.5rem 0.8rem; flex: none; font-size: 0.82rem; }
 }

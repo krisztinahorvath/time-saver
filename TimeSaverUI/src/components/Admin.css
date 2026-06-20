@@ -6,13 +6,13 @@
 .admin-sidebar {
   width: 220px;
   flex-shrink: 0;
-  background: var(--surface);
+  background: var(--bg-card);
   border-right: 1px solid var(--border);
   padding: 1.5rem 0;
 }
 
 .admin-sidebar-title {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -26,20 +26,21 @@
   align-items: center;
   gap: 0.6rem;
   padding: 0.65rem 1.25rem;
-  color: var(--text-secondary);
+  color: var(--text-muted);
   text-decoration: none;
-  font-size: 0.9rem;
-  transition: background 0.15s, color 0.15s;
+  font-size: 0.88rem;
+  transition: background var(--transition), color var(--transition);
   border-left: 3px solid transparent;
 }
 
 .admin-nav-link:hover {
-  background: var(--bg);
+  background: var(--bg-alt);
   color: var(--text);
+  text-decoration: none;
 }
 
 .admin-nav-link.active {
-  background: var(--bg);
+  background: var(--primary-light);
   color: var(--primary);
   border-left-color: var(--primary);
   font-weight: 600;
@@ -56,6 +57,7 @@
   font-weight: 700;
   margin-bottom: 1.5rem;
   color: var(--text);
+  letter-spacing: -0.02em;
 }
 
 /* Stats grid */
@@ -67,11 +69,18 @@
 }
 
 .admin-stat-card {
-  background: var(--surface);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 1.2rem 1rem;
+  border-radius: var(--radius-lg);
+  padding: 1.25rem 1rem;
   text-align: center;
+  box-shadow: var(--shadow);
+  border-top: 3px solid var(--primary);
+  transition: transform var(--transition), box-shadow var(--transition);
+}
+.admin-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
 }
 
 .admin-stat-num {
@@ -79,6 +88,7 @@
   font-weight: 800;
   line-height: 1;
   margin-bottom: 0.3rem;
+  color: var(--primary);
 }
 
 .admin-stat-label {
@@ -91,9 +101,10 @@
 /* Table */
 .admin-table-wrap {
   overflow-x: auto;
-  background: var(--surface);
+  background: var(--bg-card);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
 
 .admin-table {
@@ -103,15 +114,16 @@
 }
 
 .admin-table th {
-  background: var(--bg);
+  background: var(--bg-alt);
   padding: 0.75rem 1rem;
   text-align: left;
-  font-size: 0.78rem;
+  font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
   border-bottom: 1px solid var(--border);
   white-space: nowrap;
+  font-weight: 700;
 }
 
 .admin-table td {
@@ -125,7 +137,7 @@
 }
 
 .admin-table tr:hover td {
-  background: var(--bg);
+  background: var(--bg-alt);
 }
 
 /* Toolbar */
@@ -140,9 +152,9 @@
 .admin-toolbar input,
 .admin-toolbar select {
   padding: 0.45rem 0.75rem;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--border);
   border-radius: var(--radius);
-  background: var(--surface);
+  background: var(--bg-card);
   color: var(--text);
   font-size: 0.88rem;
   min-width: 200px;
@@ -150,15 +162,15 @@
 
 /* Badges */
 .badge-suspended {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffd78a;
+  background: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FCD34D;
 }
 
-.badge-open      { background: #d1f7e7; color: #0a6641; border: 1px solid #a3e9c8; }
-.badge-underreview { background: #cce5ff; color: #0056b3; border: 1px solid #9ac8ff; }
-.badge-resolved  { background: #d4edda; color: #155724; border: 1px solid #a3d4ab; }
-.badge-rejected  { background: #f8d7da; color: #721c24; border: 1px solid #f5b8bb; }
+.badge-open        { background: var(--success-light); color: #065F46; border: 1px solid #A7F3D0; }
+.badge-underreview { background: var(--info-light);    color: #0369A1; border: 1px solid #BAE6FD; }
+.badge-resolved    { background: #D1FAE5; color: #065F46; border: 1px solid #6EE7B7; }
+.badge-rejected    { background: var(--danger-light);  color: #991B1B; border: 1px solid #FCA5A5; }
 
 /* Recent lists */
 .admin-recent-grid {
@@ -174,10 +186,13 @@
   .admin-recent-grid { grid-template-columns: 1fr; }
 }
 
+/* ── Report modal ── */
 .report-modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -186,12 +201,13 @@
 }
 
 .report-modal {
-  background: var(--surface);
-  border-radius: var(--radius);
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
   padding: 2rem;
   width: 100%;
   max-width: 480px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-xl);
+  border: 1px solid var(--border);
 }
 
 .report-modal h2 {
@@ -225,8 +241,11 @@
   font-size: 1rem; cursor: pointer;
   color: var(--text-muted);
   line-height: 1;
+  padding: 0.25rem;
+  border-radius: var(--radius);
+  transition: background var(--transition), color var(--transition);
 }
-.contact-modal-close:hover { color: var(--text); }
+.contact-modal-close:hover { color: var(--text); background: var(--bg-alt); }
 
 .contact-modal-title {
   font-size: 1.15rem;

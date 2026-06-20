@@ -40,7 +40,7 @@ const Login: React.FC = () => {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <Link to="/">⏱ TimeSaver</Link>
+          <Link to="/"><span className="logo-time">Time</span><span className="logo-saver">Saver</span></Link>
         </div>
         <h2>Bun venit înapoi</h2>
         <p className="auth-subtitle">Intră în contul tău</p>

@@ -8,6 +8,24 @@ import { CATEGORY_LABELS, CATEGORY_ICONS, STATUS_LABELS } from '../types';
 import JobMap from './JobMap';
 import './ExploreJobs.css';
 
+const categoryGradient = (category: string): string => {
+  const gradients: Record<string, string> = {
+    Cleaning:    'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    Repairs:     'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    Electrical:  'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+    Plumbing:    'linear-gradient(135deg, #43e97b 0%, #38f9d7 100%)',
+    Moving:      'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
+    Delivery:    'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
+    Tutoring:    'linear-gradient(135deg, #fccb90 0%, #d57eeb 100%)',
+    Gardening:   'linear-gradient(135deg, #a8edea 0%, #fed6e3 100%)',
+    PetCare:     'linear-gradient(135deg, #96fbc4 0%, #f9f586 100%)',
+    TechSupport: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+    Design:      'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)',
+    Events:      'linear-gradient(135deg, #4facfe 0%, #00f2fe 100%)',
+  };
+  return gradients[category] ?? 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+};
+
 const PAGE_SIZE = 12;
 
 type SortBy = 'newest' | 'budgetAsc' | 'budgetDesc';
@@ -281,108 +299,114 @@ const ExploreJobs: React.FC = () => {
                   return (
                     <div
                       key={job.id}
-                      className={`job-card card ${isSelected ? 'job-card-selected' : ''}`}
+                      className={`job-card card-hover ${isSelected ? 'job-card-selected' : ''}`}
                       onClick={() => setSelectedJobId(job.id)}
                     >
-                      {/* Thumbnail */}
-                      {job.mainImageUrl && (
-                        <div className="jc-thumb-wrap">
+                      {/* Thumbnail: real image if available, else gradient */}
+                      <div
+                        className="jc-thumb-wrap"
+                        style={{ background: job.mainImageUrl ? undefined : categoryGradient(job.category) }}
+                      >
+                        {job.mainImageUrl && (
                           <img src={API_ORIGIN + job.mainImageUrl} alt={job.title} className="jc-thumb" />
-                        </div>
-                      )}
-
-                      {/* Top: category + status + Plus badge */}
-                      <div className="jc-top">
-                        <span className="jc-category">
-                          {CATEGORY_ICONS[job.category]} {CATEGORY_LABELS[job.category] ?? job.category}
-                        </span>
-                        <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
-                          {job.isPlusOnly && (
-                            <span className="badge-plus-only" title="Job Plus Matching — exclusiv pentru abonații Plus">
-                              ⭐ Plus
-                            </span>
-                          )}
-                          <span className={`badge badge-${job.status.toLowerCase()}`}>
-                            {STATUS_LABELS[job.status] ?? job.status}
-                          </span>
-                        </div>
-                      </div>
-
-                      <Link to={`/jobs/${job.id}`} className="jc-title">{job.title}</Link>
-
-                      <p className="jc-desc">
-                        {job.description.slice(0, 110)}{job.description.length > 110 ? '...' : ''}
-                      </p>
-
-                      <div className="jc-meta">
-                        <span className="jc-price">💰 <strong>{job.budget} RON</strong></span>
-                        <span>📍 {job.location}</span>
-                        {job.deadline && (
-                          <span>⏰ {new Date(job.deadline).toLocaleDateString('ro-RO')}</span>
-                        )}
-                        {job.applicationCount > 0 && (
-                          <span className="jc-app-count">
-                            👥 {job.applicationCount} aplicant{job.applicationCount !== 1 ? 'ți' : ''}
-                          </span>
                         )}
                       </div>
 
-                      {/* Employer row */}
-                      {job.userName && (
-                        <div className="jc-poster">
-                          <Link to={`/users/${job.userId}/profile`} className="jc-poster-avatar">
-                            {job.userName.charAt(0).toUpperCase()}
-                          </Link>
-                          <div className="jc-poster-info">
-                            <Link to={`/users/${job.userId}/profile`}>{job.userName}</Link>
-                            {job.employerAverageRating > 0 ? (
-                              <span className="jc-rating">
-                                <span className="stars">{renderStars(job.employerAverageRating)}</span>
-                                <span>{job.employerAverageRating.toFixed(1)}</span>
-                                <span className="jc-rating-count">({job.employerReviewCount})</span>
+                      {/* Card body */}
+                      <div className="jc-body">
+                        {/* Top: category + status + Plus badge */}
+                        <div className="jc-top">
+                          <span className="jc-category">
+                            {CATEGORY_ICONS[job.category]} {CATEGORY_LABELS[job.category] ?? job.category}
+                          </span>
+                          <div style={{ display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                            {job.isPlusOnly && (
+                              <span className="badge-plus-only" title="Job Plus Matching — exclusiv pentru abonații Plus">
+                                ⭐ Plus
                               </span>
-                            ) : (
-                              <span className="jc-rating jc-rating-none">Fără recenzii</span>
                             )}
+                            <span className={`badge badge-${job.status.toLowerCase()}`}>
+                              {STATUS_LABELS[job.status] ?? job.status}
+                            </span>
                           </div>
                         </div>
-                      )}
 
-                      {notif && (
-                        <div className={`alert alert-${notif.type}`} style={{ marginTop: '0.5rem' }}>
-                          {notif.msg}
-                        </div>
-                      )}
+                        <Link to={`/jobs/${job.id}`} className="jc-title">{job.title}</Link>
 
-                      {!isOwn && job.status === 'Open' && (
-                        <div className="jc-apply" onClick={e => e.stopPropagation()}>
-                          {alreadyApplied ? (
-                            <div className="applied-notice">✓ Ai aplicat deja</div>
-                          ) : (
-                            <>
-                              <textarea
-                                placeholder="Mesajul tău (min. 10 caractere)..."
-                                rows={2}
-                                value={applyMsg[job.id] ?? ''}
-                                onChange={e => setApplyMsg(prev => ({ ...prev, [job.id]: e.target.value }))}
-                              />
-                              <button
-                                className="btn btn-primary btn-sm"
-                                disabled={applyLoading[job.id]}
-                                onClick={() => handleApply(job.id)}
-                              >
-                                {applyLoading[job.id] ? 'Se trimite...' : 'Aplică acum'}
-                              </button>
-                            </>
+                        <p className="jc-desc">
+                          {job.description.slice(0, 110)}{job.description.length > 110 ? '...' : ''}
+                        </p>
+
+                        <div className="jc-meta">
+                          <span className="jc-price">💰 <strong>{job.budget} RON</strong></span>
+                          <span>📍 {job.location}</span>
+                          {job.deadline && (
+                            <span>⏰ {new Date(job.deadline).toLocaleDateString('ro-RO')}</span>
+                          )}
+                          {job.applicationCount > 0 && (
+                            <span className="jc-app-count">
+                              👥 {job.applicationCount} aplicant{job.applicationCount !== 1 ? 'ți' : ''}
+                            </span>
                           )}
                         </div>
-                      )}
 
-                      {isOwn && <div className="jc-own-badge">Jobul tău</div>}
+                        {/* Employer row */}
+                        {job.userName && (
+                          <div className="jc-poster">
+                            <Link to={`/users/${job.userId}/profile`} className="jc-poster-avatar">
+                              {job.userName.charAt(0).toUpperCase()}
+                            </Link>
+                            <div className="jc-poster-info">
+                              <Link to={`/users/${job.userId}/profile`}>{job.userName}</Link>
+                              {job.employerAverageRating > 0 ? (
+                                <span className="jc-rating">
+                                  <span className="stars">{renderStars(job.employerAverageRating)}</span>
+                                  <span>{job.employerAverageRating.toFixed(1)}</span>
+                                  <span className="jc-rating-count">({job.employerReviewCount})</span>
+                                </span>
+                              ) : (
+                                <span className="jc-rating jc-rating-none">Fără recenzii</span>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
-                      <Link to={`/jobs/${job.id}`} className="jc-details-link" onClick={e => e.stopPropagation()}>
-                        Vezi detalii →
-                      </Link>
+                        {notif && (
+                          <div className={`alert alert-${notif.type}`} style={{ marginTop: '0.5rem' }}>
+                            {notif.msg}
+                          </div>
+                        )}
+
+                        {!isOwn && job.status === 'Open' && (
+                          <div className="jc-apply" onClick={e => e.stopPropagation()}>
+                            {alreadyApplied ? (
+                              <div className="applied-notice">✓ Ai aplicat deja</div>
+                            ) : (
+                              <>
+                                <textarea
+                                  placeholder="Mesajul tău (min. 10 caractere)..."
+                                  rows={2}
+                                  value={applyMsg[job.id] ?? ''}
+                                  onChange={e => setApplyMsg(prev => ({ ...prev, [job.id]: e.target.value }))}
+                                />
+                                <button
+                                  className="btn btn-primary btn-sm"
+                                  disabled={applyLoading[job.id]}
+                                  onClick={() => handleApply(job.id)}
+                                >
+                                  {applyLoading[job.id] ? 'Se trimite...' : 'Aplică acum'}
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        )}
+
+                        {isOwn && <div className="jc-own-badge">Jobul tău</div>}
+
+                        <Link to={`/jobs/${job.id}`} className="jc-details-link" onClick={e => e.stopPropagation()}>
+                          Vezi detalii →
+                        </Link>
+                      </div>
                     </div>
                   );
                 })}
